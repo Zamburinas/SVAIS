@@ -8,10 +8,6 @@ android/
 .vscode/
 .idea
 .DS_Store
-.quasar
-.npm*
-.eslint*
-.editorconfig
 
 # Log files and databases
 *.log
