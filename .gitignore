@@ -1,0 +1,44 @@
+# Quasar files to ignore
+
+dist/
+node_modules/
+cypress/
+cordova/
+android/
+.vscode/
+.idea
+.DS_Store
+.quasar
+.npm*
+.eslint*
+.editorconfig
+
+# Log files and databases
+*.log
+*.sqlite
+*.sqlite3
+*.log.*
+*.db
+*.sql
+
+# Dependency directories
+/bower_components/
+/jspm_packages/
+/pnpm-lock.yaml
+/yarn.lock
+
+# Misc files and directories
+/.sass-cache/
+/coverage/
+/.cache/
+*.swp
+*.lock
+*.bak
+*.orig
+*.tmp
+*.sublime-project
+*.sublime-workspace
+*.komodoproject
+/.history/
+venv
+
