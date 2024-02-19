@@ -27,11 +27,27 @@
       iconSize: [32, 32],
       iconAnchor: [16, 16],
     });
+    const antennaIcon = L.icon({
+      iconUrl: 'src/assets/antena.png',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+
+    const coorGoniometros=[
+      {coordinates:[43.6728903,-7.8391903]},
+      {coordinates: [56.130366,-106.346771]},
+      {	coordinates: [-34.61315,-58.37723]}];
 
     const boats = [
       { coordinates: [42.242306, -8.730914] },
       { coordinates: [42.245, -8.735] } // Agrega más coordenadas si es necesario
     ];
+
+    coorGoniometros.forEach(Goni => {
+      const marker = L.marker(Goni.coordinates, { icon: antennaIcon }).addTo(map);
+      marker.bindPopup(`Latitude: ${Goni.coordinates[0]}, Longitude: ${Goni.coordinates[1]}`);
+    });
+
 
     boats.forEach(boat => {
       const marker = L.marker(boat.coordinates, { icon: boatIcon }).addTo(map);
