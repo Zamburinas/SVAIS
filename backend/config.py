@@ -1,6 +1,6 @@
 from enum import Enum
 
-DATABASE_IP = "127.0.0.1"
+DATABASE_IP = "localhost"
 DATABASE_PORT = 27017
 DATABASE_NAME = "AIS"
 
