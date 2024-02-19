@@ -8,6 +8,7 @@ android/
 .vscode/
 .idea
 .DS_Store
+__pycache__
 
 # Log files and databases
 *.log
