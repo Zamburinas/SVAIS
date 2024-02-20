@@ -105,7 +105,7 @@ function drawLinesWithAnimation(map, boatCoordinates, antennaCoordinates) {
     const line = L.polyline([], { color: '#444', dashArray: '10, 10', weight: 1 }).addTo(map);
     
     let currentLatlng = [antennaCoord[0], antennaCoord[1]];
-    let steps = 100; // Número de pasos para la animación
+    let steps = 50; // Número de pasos para la animación
     let step = 0;
 
     const deltaLat = (boatCoordinates[0] - antennaCoord[0]) / steps;
@@ -123,6 +123,7 @@ function drawLinesWithAnimation(map, boatCoordinates, antennaCoordinates) {
     }, 50); // Ajusta el intervalo de animación según tu preferencia
   });
 }
+
 
 
   }
