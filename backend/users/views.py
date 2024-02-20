@@ -25,22 +25,23 @@ def register(request):
     if request.method == 'POST':
         # Assuming the frontend sends email and password in the request body
         body = json.loads(request.body)
+
         if any(i is None or len(i) == 0 for i in list(body.values())):
             return JsonResponse({'msg': 'Not valid data.'}, status = 400)
-        
+
         if body['password'] != body['repeatPassword']:
             return JsonResponse({'msg': 'Password do not match.'}, status = 400)
-        
+
         if not _is_valid_email(body['email']):
             return JsonResponse({'msg': 'Wrong email format.'}, status = 400)
-        
+
         db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
         user = db[Database.USERS.value].find_one({
             'email': body['email']
         })
         if user:
             return JsonResponse({'msg': 'User already exist.'}, status = 400)
-        
+
         db[Database.USERS.value].insert_one({
             'email': body['email'],
             'password': Authenticate.hash_password(body['password']),

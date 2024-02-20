@@ -1,4 +1,4 @@
-const url = 'ais.decodifier.uk.to';
+const url = 'localhost';
 const port = 9002;
 import { Notify } from 'quasar';
 
@@ -31,7 +31,7 @@ export async function login(email, password) {
 }
 
 export async function register(userData) {
-  fetch(`http://${url}:${port}/users/register`, {
+  return await fetch(`http://${url}:${port}/users/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
