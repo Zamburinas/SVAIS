@@ -11,6 +11,7 @@
 
   let currentMarker = null;
   let currentEllipse = null;
+  let currentLines = [];
 
   function initializeMapAndLocator() {
     const map = L.map('map').setView([42.242306, -8.730914], 14)
@@ -56,10 +57,32 @@
         if (currentEllipse) {
           currentEllipse.remove();
         }
-        
+
+        if (currentLines.length > 0) {
+          currentLines.forEach(line => {
+            line.remove();
+          });
+          currentLines = [];
+        }
+
         drawEllipse(map, boat.coordinates);
+        drawLines(map, boat.coordinates, coorGoniometros.map(antenna => antenna.coordinates));
       });
     });
+
+    map.on('click', () => {
+      if (currentEllipse) {
+        currentEllipse.remove();
+        currentEllipse = null;
+      }
+
+      if (currentLines.length > 0) {
+        currentLines.forEach(line => {
+          line.remove();
+        });
+        currentLines = [];
+      }
+   });
 
     function drawEllipse(map, center) {
       const radius=Math.random() * (0.5 - 0.01) + 0.01; // Ajusta el radio de la elipse (en kilómetros)
@@ -71,6 +94,14 @@
         radius: radius * 1000, // Convierte el radio de kilómetros a metros
         interactive: false // Evita que la elipse sea interactiva
       }).addTo(map);
+    }
+
+    function drawLines(map, boatCoordinates, antennaCoordinates) {
+      antennaCoordinates.forEach(antennaCoord => {
+        const latlngs = [boatCoordinates, antennaCoord];
+        const line = L.polyline(latlngs, { color: '#444', dashArray: '10, 10',weight: 1 }).addTo(map);
+        currentLines.push(line);
+      });
     }
   }
 
