@@ -66,7 +66,7 @@
         }
 
         drawEllipse(map, boat.coordinates);
-        drawLines(map, boat.coordinates, coorGoniometros.map(antenna => antenna.coordinates));
+        drawLinesWithAnimation(map, boat.coordinates, coorGoniometros.map(antenna => antenna.coordinates));
       });
     });
 
@@ -75,7 +75,7 @@
         currentEllipse.remove();
         currentEllipse = null;
       }
-
+      linesGroup.clearLayers(); 
       if (currentLines.length > 0) {
         currentLines.forEach(line => {
           line.remove();
@@ -96,13 +96,35 @@
       }).addTo(map);
     }
 
-    function drawLines(map, boatCoordinates, antennaCoordinates) {
-      antennaCoordinates.forEach(antennaCoord => {
-        const latlngs = [boatCoordinates, antennaCoord];
-        const line = L.polyline(latlngs, { color: '#444', dashArray: '10, 10',weight: 1 }).addTo(map);
-        currentLines.push(line);
-      });
-    }
+// Antes de tu función drawLinesWithAnimation, declara una variable global para almacenar las líneas
+let linesGroup = L.layerGroup().addTo(map);
+
+function drawLinesWithAnimation(map, boatCoordinates, antennaCoordinates) {
+  antennaCoordinates.forEach(antennaCoord => {
+    const latlngs = [antennaCoord, boatCoordinates];
+    const line = L.polyline([], { color: '#444', dashArray: '10, 10', weight: 1 }).addTo(map);
+    
+    let currentLatlng = [antennaCoord[0], antennaCoord[1]];
+    let steps = 100; // Número de pasos para la animación
+    let step = 0;
+
+    const deltaLat = (boatCoordinates[0] - antennaCoord[0]) / steps;
+    const deltaLng = (boatCoordinates[1] - antennaCoord[1]) / steps;
+
+    const lineDrawingInterval = setInterval(() => {
+      if (step < steps) {
+        currentLatlng[0] += deltaLat;
+        currentLatlng[1] += deltaLng;
+        line.setLatLngs([antennaCoord, currentLatlng]);
+        step++;
+      } else {
+        clearInterval(lineDrawingInterval);
+      }
+    }, 50); // Ajusta el intervalo de animación según tu preferencia
+  });
+}
+
+
   }
 
   onMounted(() => {
