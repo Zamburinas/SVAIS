@@ -59,6 +59,7 @@
         }
 
         if (currentLines.length > 0) {
+          linesGroup.clearLayers();
           currentLines.forEach(line => {
             line.remove();
           });
