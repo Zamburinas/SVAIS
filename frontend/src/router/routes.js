@@ -1,4 +1,7 @@
 import * as helpers from '../helpers/helpers.js';
+async function redirect(from, to, next) {
+  
+}
 const routes = [
   {
     path: '/',
@@ -7,11 +10,11 @@ const routes = [
       { 
         path: '', 
         component: () => import('pages/IndexPage.vue'),
-        name: 'index'
+        name: 'map'
       }
     ],
-    beforeEnter: (to, from, next) => {
-      const token = helpers.checkToken();
+    beforeEnter: async (to, from, next) => {
+      const token = await helpers.checkToken();
       if (!token) {
         next({ name: 'login' });
       } else {
@@ -29,7 +32,15 @@ const routes = [
         component: () => import('pages/LoginPage.vue'),
         name: 'login'
       }
-    ]
+    ],
+    beforeEnter: async (to, from, next) => {
+      const token = await helpers.checkToken();
+      if (token) {
+        next({ name: 'map' });
+      } else {
+        next();
+      }
+    }
   },
   {
     path: '/historical',
@@ -41,9 +52,8 @@ const routes = [
         name: 'historical'
       }
     ],
-    beforeEnter: (to, from, next) => {
-      const token = helpers.checkToken();
-      console.log(token);
+    beforeEnter: async (to, from, next) => {
+      const token = await helpers.checkToken();
       if (!token) {
         next({ name: 'login' });
       } else {
@@ -51,7 +61,17 @@ const routes = [
       }
     }
   },
-
+  {
+    path: '/register',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { 
+        path: '', 
+        component: () => import('pages/RegisterPage.vue'),
+        name: 'register'
+      }
+    ]
+  },
   // Always leave this as last one,
   // but you can also remove it
   {

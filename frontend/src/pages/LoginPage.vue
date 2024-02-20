@@ -1,6 +1,9 @@
 <template>
   <q-page class="flex flex-center bg-grey-2">
-    <q-card class="q-pa-md shadow-2 my_card" bordered>
+    <q-card 
+      class="q-pa-md shadow-2 my_card" 
+      bordered
+      @keyup.enter="login()">
       <q-card-section class="text-center">
         <div class="text-blue-9 text-h5 text-weight-bold">Sign in</div>
         <div class="text-grey-8">Sign in below to access your account</div>
@@ -10,6 +13,7 @@
           dense 
           outlined 
           color = "primary"
+          @blur="validateEmail"
           v-model = "email" 
           label = "Email Address">
         </q-input>
@@ -30,12 +34,15 @@
           label = "Sign in" 
           no-caps 
           class = "full-width"
-          @click="this.helpers.login(this.email, this.password)">
+          @click="login()">
       </q-btn>
       </q-card-section>
       <q-card-section class="text-center q-pt-none">
         <div class="text-blue-8">Don't have an account yet?
-          <a href="#" class="text-blue text-weight-bold" style="text-decoration: none">
+          <a 
+            class="text-blue text-weight-bold" 
+            style="text-decoration: none; cursor: pointer;"
+            @click="this.$router.push({ name: 'register' })">
             Sign up.
           </a>
         </div>
@@ -54,7 +61,21 @@ export default {
       password: "",
       helpers: inject('helpers')
     };
-  }
+  },
+  methods: {
+    async login() {
+      let loginRedirect = await this.helpers.login(this.email, this.password);
+      if (loginRedirect) {
+        this.$router.push({ name: 'map' });
+      }
+    },
+    validateEmail() {
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(this.email)) {
+        this.helpers.pushNotification('negative', 'Invalid email address.');
+      }
+    }
+  },
 };
 </script>
 

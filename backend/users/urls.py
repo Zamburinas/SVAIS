@@ -1,8 +1,10 @@
 # myapp/urls.py
+import users.views as views
 from django.urls import path
-from users.views import login, checkToken
+
 
 urlpatterns = [
-    path('login', login, name='login'),
-    path('checkToken', checkToken, name = 'checkToken')
+    path('login', views.login, name='login'),
+    path('checkToken', views.checkToken, name = 'checkToken'),
+    path('register', views.register, name = 'register')
 ]
