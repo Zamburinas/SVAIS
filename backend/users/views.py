@@ -21,10 +21,12 @@ def login(request):
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-def auth_token(request):
-    token = request.headers.get("Authorization")
+def checkToken(request):
+    body = json.loads(request.body)
+    token = body.get('token', None)
     username = Authenticate.decode_auth_token(token)
-    if Authenticate.decode_auth_token(token):
+    
+    if username:
         return JsonResponse({"state": "OK", "username":username})
     else:
         return HttpResponse(status=401)

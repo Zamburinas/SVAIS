@@ -27,6 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     '192.168.0.20',
+    'localhost',
     'ais.decodifier.uk.to'
 ]
 
