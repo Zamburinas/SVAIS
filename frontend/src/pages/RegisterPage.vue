@@ -16,7 +16,6 @@
           color = "primary"
           v-model = "email" 
           @blur="validateEmail"
-          type = "email"
           label = "Email Address">
         </q-input>
         <q-input 
