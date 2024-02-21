@@ -1,7 +1,5 @@
 import * as helpers from '../helpers/helpers.js';
-async function redirect(from, to, next) {
-  
-}
+
 const routes = [
   {
     path: '/',

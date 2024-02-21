@@ -59,13 +59,23 @@ import { defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { inject } from 'vue';
 
-const linksList = [
+const notLoginList = [
   {
     title: 'Login',
     icon: 'login',
     page: '/login',
     size: 'sm'
   },
+  {
+    title: 'Signup',
+    icon: 'profile',
+    page: '/register',
+    size: 'sm'
+  },
+]
+
+const loginList = [
+
   {
     title: 'Map',
     icon: 'map',
@@ -79,7 +89,7 @@ const linksList = [
     size: 'sm'
   },
   {
-    title: 'logOut',
+    title: 'Logout',
     icon: 'logout',
     page: 'logout',
     size: 'sm'
@@ -93,6 +103,13 @@ export default defineComponent({
     const router = useRouter()
     const leftDrawerOpen = ref(false)
     const helpers = inject('helpers')
+    var essentialLinks;
+    if (helpers.checkToken) {
+      essentialLinks = loginList;
+    } else {
+      essentialLinks = notLoginList;
+    }
+
     const navigate = (page) => {
       if (page === 'logout') {
         helpers.logout(router.push);
@@ -106,7 +123,7 @@ export default defineComponent({
     }
 
     return {
-      essentialLinks: linksList,
+      essentialLinks: essentialLinks,
       leftDrawerOpen,
       toggleLeftDrawer,
       navigate
