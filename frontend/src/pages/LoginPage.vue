@@ -13,7 +13,6 @@
           dense 
           outlined 
           color = "primary"
-          @blur="validateEmail"
           v-model = "email" 
           label = "Email Address">
         </q-input>
@@ -64,16 +63,22 @@ export default {
   },
   methods: {
     async login() {
+      if (!this.validateEmail()) {
+        return;
+      } 
       let loginRedirect = await this.helpers.login(this.email, this.password);
       if (loginRedirect) {
         this.$router.push({ name: 'map' });
       }
+
     },
     validateEmail() {
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailPattern.test(this.email)) {
-        this.helpers.pushNotification('negative', 'Invalid email address.');
+        this.helpers.pushNotification('negative', 'Invalid email address');
+        return false;
       }
+      return true;
     }
   },
 };

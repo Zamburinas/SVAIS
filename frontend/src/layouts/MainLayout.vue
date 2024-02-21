@@ -36,7 +36,9 @@
         >
           <q-item-section avatar>
             <q-item-label>
-              <q-icon :name="link.icon" />
+              <q-icon 
+                :name="link.icon" 
+                :size="link.size"/>
             </q-item-label>
           </q-item-section>
           <q-item-section>
@@ -55,22 +57,32 @@
 <script>
 import { defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { inject } from 'vue';
 
 const linksList = [
   {
     title: 'Login',
     icon: 'login',
-    page: '/login'
+    page: '/login',
+    size: 'sm'
   },
   {
     title: 'Map',
     icon: 'map',
-    page: '/'
+    page: '/',
+    size: 'sm'
   },
   {
     title: 'Historical',
     icon: 'list',
-    page: '/historical'
+    page: '/historical',
+    size: 'sm'
+  },
+  {
+    title: 'logOut',
+    icon: 'logout',
+    page: 'logout',
+    size: 'sm'
   },
 ]
 
@@ -80,10 +92,13 @@ export default defineComponent({
   setup () {
     const router = useRouter()
     const leftDrawerOpen = ref(false)
-
+    const helpers = inject('helpers')
     const navigate = (page) => {
-      router.push(page)
-      // No se cierra el cajón al cambiar de página
+      if (page === 'logout') {
+        helpers.logout(router.push);
+      } else {
+        router.push(page)
+      }
     }
 
     const toggleLeftDrawer = () => {

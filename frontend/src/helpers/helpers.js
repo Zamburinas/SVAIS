@@ -77,17 +77,35 @@ export async function checkToken() {
   });
 }
 
-export function pushNotification(color, message) {
+export async function logout(router) {
+  pushNotification(
+    'light-blue',
+    'Are you sure want to logout?',
+    'top',
+    [
+      { label: 'Yes', color: 'white', handler: () => {
+        sessionStorage.removeItem('token');
+        router('/login')
+       } 
+      },
+      { label: 'No', color: 'white', handler: () => { /* ... */ } }
+    ]
+  )
+}
+
+export function pushNotification(color, 
+                                 message, 
+                                 position = 'top-right',
+                                 actions = [{
+                                              icon: 'close', 
+                                              color: 'white', 
+                                              round: true
+                                            }]) 
+{
   Notify.create({
     color: color, 
     message: message,
-    position: 'top-right',
-    actions: [
-      {
-        icon: 'close', 
-        color: 'white', 
-        round: true
-      }
-    ]
+    position: position,
+    actions: actions
   });
 }
