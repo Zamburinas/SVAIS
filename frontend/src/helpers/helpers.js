@@ -109,3 +109,19 @@ export function pushNotification(color,
     actions: actions
   });
 }
+
+
+export async function getAllCoords() {
+  return await fetch(`http://${url}:${port}/coords/coords`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json"
+    }
+  })
+  .then(response => {
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+      return response.json();
+  })
+}

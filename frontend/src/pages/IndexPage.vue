@@ -8,13 +8,26 @@
 import { onMounted } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { inject } from 'vue';
+
 
 let currentMarker = null;
 let currentEllipse = null;
 let currentLines = [];
 let linesGroup = L.layerGroup();
+let helpers= inject('helpers');
 
-function initializeMapAndLocator() {
+async function initializeMapAndLocator() {
+  let coorGoniometros=null;
+  let boats =null;
+  let coords = await helpers.getAllCoords();
+  if(coords){
+    coorGoniometros=coords.radiogonos;
+    boats =coords.boats;
+    console.log(boats);
+  }
+  
+      
   const map = L.map('map').setView([42.242306, -8.730914], 14)
 
   L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
@@ -35,25 +48,14 @@ function initializeMapAndLocator() {
     iconAnchor: [16, 16],
   });
 
-  const coorGoniometros=[
-    {coordinates:[43.6728903,-7.8391903]},
-    {coordinates: [56.130366,-106.346771]},
-    {coordinates: [-34.61315,-58.37723]}
-  ];
-
-  const boats = [
-    { coordinates: [42.242306, -8.730914] },
-    { coordinates: [42.245, -8.735] } // Agrega más coordenadas si es necesario
-  ];
-
   coorGoniometros.forEach(Goni => {
-    const marker = L.marker(Goni.coordinates, { icon: antennaIcon }).addTo(map);
-    marker.bindPopup(`Latitude: ${Goni.coordinates[0]}, Longitude: ${Goni.coordinates[1]}`);
+    const marker = L.marker(Goni, { icon: antennaIcon }).addTo(map);
+    marker.bindPopup(`Latitude: ${Goni[0]}, Longitude: ${Goni[1]}`);
   });
 
   boats.forEach(boat => {
-    const marker = L.marker(boat.coordinates, { icon: boatIcon }).addTo(map);
-    marker.bindPopup(`Latitude: ${boat.coordinates[0]}, Longitude: ${boat.coordinates[1]}`);
+    const marker = L.marker(boat.slice(0, 2), { icon: boatIcon }).addTo(map);
+    marker.bindPopup(`Latitude: ${boat[0]}, Longitude: ${boat[1]}`);
     marker.on('click', () => {
       if (currentEllipse) {
         currentEllipse.remove();
@@ -67,8 +69,8 @@ function initializeMapAndLocator() {
         currentLines = [];
       }
 
-      drawEllipse(map, boat.coordinates);
-      drawLinesWithAnimation(map, boat.coordinates, coorGoniometros.map(antenna => antenna.coordinates));
+      
+      drawLinesWithAnimation(map, boat, coorGoniometros.map(antenna => antenna));
     });
   });
 
@@ -80,16 +82,27 @@ function initializeMapAndLocator() {
     }
   });
 
-  function drawEllipse(map, center) {
-    const radius=Math.random() * (0.5 - 0.01) + 0.01;
-    currentEllipse = L.circle([center[0], center[1]], {
-      color: 'dark',
-      fillColor: '#7FFF00',
-      fillOpacity: 0.4,
-      radius: radius * 1000,
-      interactive: false
+
+  function drawEllipse(map, center, semiMajorAxis, semiMinorAxis, angle) {
+    var angle = angle * Math.PI / 180;
+    var numSegments = 400;
+    var points = [];
+    var angleOffset = 2 * Math.PI / numSegments;
+
+    for (var i = 0; i < numSegments; i++) {
+        var angleRad = i * angleOffset;
+        var x = center[0] + (0.001)*semiMajorAxis * Math.cos(angleRad) * Math.cos(angle) - (0.001)*semiMinorAxis * Math.sin(angleRad) * Math.sin(angle);
+        var y = center[1] + (0.001)*semiMajorAxis * Math.cos(angleRad) * Math.sin(angle) + (0.001)*semiMinorAxis * Math.sin(angleRad) * Math.cos(angle);
+        points.push([x, y]);
+    }
+
+    currentEllipse =L.polygon(points, {
+        color: 'dark',
+        fillColor: '#7FFF00',
+        fillOpacity: 0.4,
+        interactive: false
     }).addTo(map);
-  }
+}
 
   function drawLinesWithAnimation(map, boatCoordinates, antennaCoordinates) {
     antennaCoordinates.forEach(antennaCoord => {
@@ -111,12 +124,17 @@ function initializeMapAndLocator() {
           step++;
         } else {
           clearInterval(lineDrawingInterval);
+          if(currentEllipse){
+            currentEllipse.remove();
+          }
+          drawEllipse(map, boatCoordinates.slice(0,2),boatCoordinates[4],boatCoordinates[5],boatCoordinates[6]);
         }
       }, 50);
       
       line.addTo(linesGroup);
+      
     });
-
+    
     linesGroup.addTo(map);
   }
 }

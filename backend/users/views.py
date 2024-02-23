@@ -14,6 +14,7 @@ def login(request):
         password = body.get('password', None)
         
         if email is None or password is None or not _check_credentials(email, password):
+            
             return JsonResponse({'error': 'Email or password not valid'}, status = 400)
         token = Authenticate.encode_auth_token(email, minutes=60)
         return JsonResponse({"token": token})
@@ -27,12 +28,15 @@ def register(request):
         body = json.loads(request.body)
 
         if any(i is None or len(i) == 0 for i in list(body.values())):
+            print("2")
             return JsonResponse({'msg': 'Not valid data.'}, status = 400)
 
         if body['password'] != body['repeatPassword']:
+            print("3")
             return JsonResponse({'msg': 'Password do not match.'}, status = 400)
 
         if not _is_valid_email(body['email']):
+            print("4")
             return JsonResponse({'msg': 'Wrong email format.'}, status = 400)
 
         db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
@@ -40,6 +44,7 @@ def register(request):
             'email': body['email']
         })
         if user:
+            print("5")
             return JsonResponse({'msg': 'User already exist.'}, status = 400)
 
         db[Database.USERS.value].insert_one({
@@ -74,6 +79,7 @@ def _check_credentials(email, password):
     user = db[Database.USERS.value].find_one({
         'email': email
     })
+    print(user)
     if user and user['password'] == Authenticate.hash_password(password):
         return True
 
