@@ -1,127 +1,98 @@
 <template>
-    <div>
-      <!-- Menú de opciones -->
-      <div v-if="showMenu">
-        <h2 class="menu-title">Available Boats:</h2>
-        <div class="options-container">
-          <div class="option" v-for="(option, index) in options" :key="index" @click="selectOption(option)">
-            <img src="../assets/cruise_colored-icon.png" alt="Imagen del barco" class="option-image" />
-            <div class="option-details">
-              <!-- Aquí puedes agregar más datos sobre el barco -->
-              <h3>{{ option.name }}</h3>
-              <p>{{ option.description }}</p>
-              <!-- Puedes agregar más contenido aquí según sea necesario -->
-            </div>
-          </div>
-        </div>
-      </div>
-  
-      <!-- Contenido principal -->
-      <div v-else>
-        <div>
-        <button @click="goBack" class="back-button">Back</button>
-      </div>
-      <div id="map"></div>
-      </div>
-    </div>
-  </template>
-  
-  <script>
-import { ref, onMounted } from 'vue'
+  <q-page>
+    <q-btn class="absolute-top-right" @click="toggleMenu">Menu</q-btn>
+    <div id="menu" class="menu-right" v-show="showMenu">Hola</div>
+    <div id="map" @click="hideMapPopup"></div>
+  </q-page>
+</template>
 
-  export default {
-    data() {
-      return {
-        options: [
-          { name: 'aaaaaaaaaaaa', description: 'Descripción del Barco 1' },
-          { name: 'bbbbbbbbbbbb', description: 'Descripción del Barco 2' },
-          { name: 'ccccccccccccc', description: 'Descripción del Barco 3' },
-          { name: 'dddddddddddd', description: 'Descripción del Barco 4' }
-        ], // Opciones del menú
-        content: '', // Contenido que se muestra al hacer clic en una opción
-        showMenu: true // Controla si se muestra el menú o el contenido principal
-      };
-    },
-    methods: {
-      selectOption(option) {
-        this.showMenu = false;
+<script setup>
+import { onMounted, ref } from 'vue'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import { inject } from 'vue';
 
-        const map = L.map('map').setView([43.6728903,-7.8391903], 14); // Configura el centro del mapa con las coordenadas del barco seleccionado
+let currentMarker = null;
+let showMenu = ref(false); // Controla la visibilidad del menú
 
-        L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
-        maxZoom: 19,
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        id: "streets-v12",
-        accessToken: "pk.eyJ1IjoiYm9id2F0Y2hlcngiLCJhIjoiY2xiMGwwZThrMWg3aTNwcW1mOGRucHh6bSJ9.kNHlmRqkRSxYNeipcKkJhw",
-        }).addTo(map);
+let helpers = inject('helpers');
+let boats = ref([]);
 
-      },
-      goBack() {
+async function initializeMapAndLocator() {
+    const map = L.map('map').setView([42.242306, -8.730914], 14)
 
-      this.showMenu = true;
-    }
-    }
-  };
-  </script>
-  
-  <style>
-  /* Estilos para mejorar la apariencia del menú y del contenido */
-  
-  .menu-title {
-    font-size: 2rem; /* Tamaño del título más grande */
-    margin-left: 1.5%;
-  }
-  
-  .options-container {
-    display: flex;
-    flex-wrap: wrap;
-  }
-  
-  .option {
-    cursor: pointer;
-    background-color: #f0f0f0;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    padding: 20px;
-    margin-right: 20px;
-    margin-bottom: 20px;
-    width: 30%; /* Ancho deseado para cada opción */
-    transition: background-color 0.3s ease;
-    display: flex;
-    align-items: center;
-    margin-left: 1.5%; /* Añade margen a la izquierda */
-  }
-  
-  .option:hover {
-    background-color: #e0e0e0;
-  }
-  
-  .option-image {
-    width: 100px; /* Ancho de la imagen */
-    height: auto; /* Altura automática para mantener la proporción */
-    margin-right: 20px;
-  }
-  .back-button {
-  margin-bottom: 10px;
-  background-color: #1976D2; /* Fondo azul */
-  color: #ffffff; /* Letras blancas */
-  border: none;
-  border-radius: 5px;
-  padding: 0.5% 1%;
-  font-size: 1.2rem; /* Tamaño de letra más grande */
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  margin-top: 1%;
-  margin-left: 1%;
+    L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      id: "streets-v12",
+      accessToken: "pk.eyJ1IjoiYm9id2F0Y2hlcngiLCJhIjoiY2xiMGwwZThrMWg3aTNwcW1mOGRucHh6bSJ9.kNHlmRqkRSxYNeipcKkJhw",
+    }).addTo(map);
+
 }
 
-.back-button:hover {
-  background-color: #0056b3; /* Cambio de color al pasar el ratón */
+function toggleMenu() {
+  showMenu.value = !showMenu.value; // Cambia el estado de la visibilidad del menú
 }
-  .option-details {
-    
-    flex: 1;
+
+function showBoatOnMap(boat) {
+  const map = L.map('map');
+  const boatIcon = L.icon({
+    iconUrl: 'src/assets/cruise_colored-icon.png',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  });
+
+  if (currentMarker) {
+    map.removeLayer(currentMarker);
   }
-  
-  </style>
-  
+
+  currentMarker = L.marker(boat, { icon: boatIcon }).addTo(map);
+  currentMarker.bindPopup(`Latitude: ${boat[0]}, Longitude: ${boat[1]}`).openPopup();
+}
+
+
+onMounted(() => {
+  initializeMapAndLocator();
+})
+</script>
+
+<style>
+#map {
+  width: 100%;
+  height: 92vh;
+  position: relative;
+}
+
+.absolute-top-right {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 100;
+}
+
+.menu-right {
+  width: 80%; /* Ajusta el ancho del menú */
+  max-height: 100vh; /* Establece una altura máxima para el menú */
+  position: fixed; /* Usa posición fija para bloquear el menú en la pantalla */
+  top: 0;
+  right: 0;
+  background-color: white; /* Añade un color de fondo para el menú */
+  border-left: 1px solid #ccc; /* Añade un borde para separar el menú del mapa */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow-y: auto; /* Añade un scroll si el contenido del menú es más grande que la pantalla */
+}
+
+body {
+  overflow: hidden; /* Bloquea el scroll en el cuerpo de la página */
+}
+
+.q-btn {
+  background-color: #2196f3; /* Cambia el color de fondo del botón */
+  color: white; /* Cambia el color del texto del botón a blanco */
+}
+</style>

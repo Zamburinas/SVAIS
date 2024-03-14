@@ -83,7 +83,7 @@ async function initializeMapAndLocator() {
   });
 
 
-  function drawEllipse(map, center, semiMajorAxis, semiMinorAxis, angle) {
+  function drawEllipse(map, boat,center, semiMajorAxis, semiMinorAxis, angle) {
     var angle = angle * Math.PI / 180;
     var numSegments = 400;
     var points = [];
@@ -91,18 +91,35 @@ async function initializeMapAndLocator() {
 
     for (var i = 0; i < numSegments; i++) {
         var angleRad = i * angleOffset;
-        var x = center[0] + (0.001)*semiMajorAxis * Math.cos(angleRad) * Math.cos(angle) - (0.001)*semiMinorAxis * Math.sin(angleRad) * Math.sin(angle);
-        var y = center[1] + (0.001)*semiMajorAxis * Math.cos(angleRad) * Math.sin(angle) + (0.001)*semiMinorAxis * Math.sin(angleRad) * Math.cos(angle);
+        var x = center[0] + (0.0001)*semiMajorAxis * Math.cos(angleRad) * Math.cos(angle) - (0.0001)*semiMinorAxis * Math.sin(angleRad) * Math.sin(angle);
+        var y = center[1] + (0.0001)*semiMajorAxis * Math.cos(angleRad) * Math.sin(angle) + (0.0001)*semiMinorAxis * Math.sin(angleRad) * Math.cos(angle);
         points.push([x, y]);
     }
+    const boatCoordinates = boat;
+    const q = isInsideEllipse(boatCoordinates, center, semiMajorAxis, semiMinorAxis, angle);
+    const fillColor = q ? '#00FF00' : '#FF0000';
 
     currentEllipse =L.polygon(points, {
         color: 'dark',
-        fillColor: '#7FFF00',
+        fillColor: fillColor,
         fillOpacity: 0.4,
         interactive: false
     }).addTo(map);
 }
+
+    function isInsideEllipse(point, center, semiMajorAxis, semiMinorAxis, angle) {
+      const dx = point[0] - center[0];
+      const dy = point[1] - center[1];
+      const angleRad = angle * Math.PI / 180;
+      const cosAngle = Math.cos(angleRad);
+      const sinAngle = Math.sin(angleRad);
+      const rotatedDx = cosAngle * dx - sinAngle * dy;
+      const rotatedDy = sinAngle * dx + cosAngle * dy;
+
+      return (rotatedDx * rotatedDx) / (semiMajorAxis*(0.0001) * semiMajorAxis*(0.0001)) + (rotatedDy * rotatedDy) / (semiMinorAxis *(0.0001)* semiMinorAxis*(0.0001)) <= 1;
+    }
+
+
 
   function drawLinesWithAnimation(map, boatCoordinates, antennaCoordinates) {
     antennaCoordinates.forEach(antennaCoord => {
@@ -113,8 +130,8 @@ async function initializeMapAndLocator() {
       let steps = 100;
       let step = 0;
 
-      const deltaLat = (boatCoordinates[0] - antennaCoord[0]) / steps;
-      const deltaLng = (boatCoordinates[1] - antennaCoord[1]) / steps;
+      const deltaLat = (boatCoordinates[2] - antennaCoord[0]) / steps;
+      const deltaLng = (boatCoordinates[3] - antennaCoord[1]) / steps;
 
       const lineDrawingInterval = setInterval(() => {
         if (step < steps) {
@@ -127,7 +144,7 @@ async function initializeMapAndLocator() {
           if(currentEllipse){
             currentEllipse.remove();
           }
-          drawEllipse(map, boatCoordinates.slice(0,2),boatCoordinates[4],boatCoordinates[5],boatCoordinates[6]);
+          drawEllipse(map,boatCoordinates.slice(0,2) ,boatCoordinates.slice(2,4),boatCoordinates[4],boatCoordinates[5],boatCoordinates[6]);
         }
       }, 50);
       

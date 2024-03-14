@@ -11,8 +11,8 @@ def coords(request):
     if request.method == 'GET':
         #devolver de la base de datos las ultimas coordenadas de los barcos y antenas
         boats = [
-            (42.242306, -8.730914) ,
-            ( 42.245, -8.735 )
+            (42.242306, -8.730914),
+            (42.249000, -8.731020)
         ]
         radiogonos=[
             (43.6728903,-7.8391903) ,
@@ -48,12 +48,19 @@ def coords(request):
         
         elipses = []
     # Calcular elipse de error para cada barco
-        for i, boat in enumerate(boats):
+        for index,boat in enumerate(boats):
             nearby_radiogonos = radiogonos  # Puedes filtrar aquí los radiogonos cercanos según tus criterios
             nearby_radiogonos = np.array(nearby_radiogonos)
             mean_x, mean_y, semi_major_axis, semi_minor_axis, angle = calcular_elipse_error(nearby_radiogonos)
 
-            boat_data = [boat[0], boat[1], mean_x, mean_y, semi_major_axis, semi_minor_axis, angle]
+
+
+                                        # Esto de aquí es basicamente ahora el centro de la elipse está puesto para que sea el centro del barco
+            
+            if index==1:
+                boat_data = [boat[0], boat[1], boat[0], boat[1], semi_major_axis, semi_minor_axis, angle]
+            else: 
+                boat_data = [boat[0], boat[1], boat[0]+0.02, boat[1], semi_major_axis, semi_minor_axis, angle]
 
             elipses.append(boat_data)
 
