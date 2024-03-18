@@ -1,59 +1,115 @@
 <template>
   <q-page>
-    <q-btn class="absolute-top-right" @click="toggleMenu">Menu</q-btn>
-    <div id="menu" class="menu-right" v-show="showMenu">Hola</div>
-    <div id="map" @click="hideMapPopup"></div>
+    <div id="map"></div>
+
+    <!-- Botón para abrir el menú desplegable -->
+    <q-btn @click="toggleMenu" class="absolute-top-right">Menú</q-btn>
+
+    <!-- Menú desplegable -->
+    <q-drawer v-model="showMenu" side="right" content-class="small-drawer" class="menu-list">
+      <q-list>
+        <!-- Contenido del menú -->
+        <q-item clickable v-ripple v-for="(boat, index) in boats" :key="index" class="boat-item" :class="{ 'selected': boat.checked }">
+          <q-item-section>
+            <!-- Contenedor del barco (simulando un checkbox) -->
+            <label :for="'boat_checkbox_' + index" class="boat-checkbox">
+              <!-- Foto y nombre del barco -->
+              <img :src="boat.photo" style="width: 32px; height: 32px; border-radius: 50%;">
+              <span>{{ boat.name }}</span>
+            </label>
+            <!-- Checkbox oculto -->
+            <input type="checkbox" :id="'boat_checkbox_' + index" v-model="boat.checked" @change="handleBoatSelection(boat)" style="display: none;">
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </q-drawer>
   </q-page>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import { onMounted, ref } from 'vue';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { inject } from 'vue';
 
-let currentMarker = null;
-let showMenu = ref(false); // Controla la visibilidad del menú
-
+let markers = new Map(); // Usamos un Map para almacenar los marcadores de barcos
+let routes = new Map(); // Mapa para almacenar las rutas de los barcos
 let helpers = inject('helpers');
-let boats = ref([]);
+
+
+let showMenu = ref(false); // Variable para controlar la visibilidad del menú
+let map = null; // Variable para almacenar la instancia del mapa
+let boats = ref([]); // Variable para almacenar los datos de los barcos
 
 async function initializeMapAndLocator() {
-    const map = L.map('map').setView([42.242306, -8.730914], 14)
+  map = L.map('map').setView([42.242306, -8.730914], 14);
 
-    L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      id: "streets-v12",
-      accessToken: "pk.eyJ1IjoiYm9id2F0Y2hlcngiLCJhIjoiY2xiMGwwZThrMWg3aTNwcW1mOGRucHh6bSJ9.kNHlmRqkRSxYNeipcKkJhw",
-    }).addTo(map);
+  L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    id: 'streets-v12',
+    accessToken: 'pk.eyJ1IjoiYm9id2F0Y2hlcngiLCJhIjoiY2xiMGwwZThrMWg3aTNwcW1mOGRucHh6bSJ9.kNHlmRqkRSxYNeipcKkJhw',
+  }).addTo(map);
 
+  let coords = await helpers.getBoatInfo();
+  // Asignar los datos de los barcos a la variable boats
+  boats.value = coords.map(coord => ({
+    name: coord.name,
+    photo: coord.photo,
+    checked: false,
+    route: [] // Puedes agregar la ruta si también está disponible en coords
+  }));
 }
 
+// Función para el evento click del botón de menú
 function toggleMenu() {
-  showMenu.value = !showMenu.value; // Cambia el estado de la visibilidad del menú
+  showMenu.value = !showMenu.value;
+  const pageContainer = document.querySelector('.q-page-container');
+  if (showMenu.value) {
+    pageContainer.style.marginRight = '0';
+  } 
 }
 
-function showBoatOnMap(boat) {
-  const map = L.map('map');
-  const boatIcon = L.icon({
-    iconUrl: 'src/assets/cruise_colored-icon.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  });
+async function handleBoatSelection(boat) {
+  if (boat.checked) {
+    let coords = await helpers.getBoatRoute({"name": boat.name});
+    
+    if (coords.route && coords.route.length > 0) {
+      // Actualizar la ruta del barco con los nuevos datos recibidos
+      boat.route = coords.route;
 
-  if (currentMarker) {
-    map.removeLayer(currentMarker);
+      const boatIcon = L.icon({
+        iconUrl: 'src/assets/cruise_colored-icon.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+      });
+
+      const boatMarker = L.marker(boat.route[boat.route.length - 1], { icon: boatIcon }).addTo(map);
+      markers.set(boat, boatMarker); // Asocia el marcador con el barco en el mapa
+
+      const boatRoute = L.polyline(boat.route, { color: 'blue', weight: 5 }).addTo(map);
+      routes.set(boat, boatRoute); // Asocia la ruta con el barco en el mapa
+    }
+  } else {
+    // Removemos el marcador y la ruta correspondientes al barco deseleccionado
+    const boatMarker = markers.get(boat);
+    if (boatMarker) {
+      map.removeLayer(boatMarker);
+      markers.delete(boat);
+    }
+
+    const boatRoute = routes.get(boat);
+    if (boatRoute) {
+      map.removeLayer(boatRoute);
+      routes.delete(boat);
+    }
   }
-
-  currentMarker = L.marker(boat, { icon: boatIcon }).addTo(map);
-  currentMarker.bindPopup(`Latitude: ${boat[0]}, Longitude: ${boat[1]}`).openPopup();
 }
 
 
 onMounted(() => {
   initializeMapAndLocator();
-})
+});
 </script>
 
 <style>
@@ -70,29 +126,44 @@ onMounted(() => {
   z-index: 100;
 }
 
-.menu-right {
-  width: 80%; /* Ajusta el ancho del menú */
-  max-height: 100vh; /* Establece una altura máxima para el menú */
-  position: fixed; /* Usa posición fija para bloquear el menú en la pantalla */
-  top: 0;
-  right: 0;
-  background-color: white; /* Añade un color de fondo para el menú */
-  border-left: 1px solid #ccc; /* Añade un borde para separar el menú del mapa */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 24px;
-  padding: 20px;
-  box-sizing: border-box;
-  overflow-y: auto; /* Añade un scroll si el contenido del menú es más grande que la pantalla */
-}
-
-body {
-  overflow: hidden; /* Bloquea el scroll en el cuerpo de la página */
-}
-
 .q-btn {
   background-color: #2196f3; /* Cambia el color de fondo del botón */
   color: white; /* Cambia el color del texto del botón a blanco */
+}
+
+.small-drawer {
+  width: 200px; /* Define el ancho deseado para el menú desplegable */
+}
+
+.menu-list {
+  background-color: #f0f0f0; /* Fondo más oscuro para el menú */
+}
+
+.boat-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.boat-info {
+  margin-left: 10px;
+}
+
+.boat-item {
+  margin-bottom: 5px; /* Espacio entre elementos */
+  border-radius: 8px; /* Bordes redondeados */
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.boat-item:hover {
+  background-color: #e0e0e0; /* Color de fondo más claro al pasar el ratón */
+}
+
+.selected {
+  background-color: #1976D2 !important;
 }
 </style>

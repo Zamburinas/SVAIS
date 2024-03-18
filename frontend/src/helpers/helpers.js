@@ -1,4 +1,4 @@
-const url = 'ais.decodifier.uk.to';
+const url = '10.26.10.10';
 const port = 9002;
 import { Notify } from 'quasar';
 
@@ -117,6 +117,36 @@ export async function getAllCoords() {
     headers: {
       "Content-Type": "application/json"
     }
+  })
+  .then(response => {
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+      return response.json();
+  })
+}
+
+export async function getBoatInfo() {
+  return await fetch(`http://${url}:${port}/coords/boat_info`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json"
+    }
+  })
+  .then(response => {
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+      return response.json();
+  })
+}
+
+export async function getBoatRoute(boatName) {
+  return await fetch(`http://${url}:${port}/coords/get_route`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },body:JSON.stringify(boatName),
   })
   .then(response => {
       if (!response.ok) {
