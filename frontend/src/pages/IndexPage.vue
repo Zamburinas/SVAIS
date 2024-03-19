@@ -5,13 +5,12 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { inject } from 'vue';
 
-
-let currentMarker = null;
+let intervalId;
 let currentEllipse = null;
 let currentLines = [];
 let linesGroup = L.layerGroup();
@@ -156,9 +155,13 @@ async function initializeMapAndLocator() {
   }
 }
 
+
+
+
 onMounted(() => {
   initializeMapAndLocator();
 })
+
 </script>
 
 <style>

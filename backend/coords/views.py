@@ -5,6 +5,7 @@ from config import *
 import numpy as np
 from scipy.stats import chi2
 import json
+import random
 # Create your views here.
 
 
@@ -118,15 +119,14 @@ def get_route(request):
         # Agrega más elementos según sea necesario
         ]
 
-        if body['name'] == "Barco 1":
-            return JsonResponse(boats[0], safe=False)
+        if body['name'] == "Barco 4":
+            return JsonResponse(generate_route(45.4215,-75.6919,-33.9249, 18.4241,4800), safe=False)
         elif body['name'] == "Barco 2":
-            return JsonResponse(boats[1], safe=False)
+            return JsonResponse(generate_route(-34.6037,-58.3816,59.9139,10.7522,4800), safe=False)
         elif body['name'] == "Barco 3":
-            return JsonResponse(boats[2], safe=False)
+            return JsonResponse(generate_route(40.7128,-74.0060,42.240599,-8.720726,4800), safe=False)
         else:
             return JsonResponse({'error': 'Barco no encontrado'}, status=404)
-
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
@@ -144,3 +144,26 @@ def boat_info(request):
         return JsonResponse(boats, safe=False)
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+
+
+
+def generate_route(start_lat,start_lon,end_lat,end_lon,num_points):
+
+    # Inicializamos la lista de coordenadas
+    route = []
+
+    # Generamos los puntos intermedios
+    for i in range(num_points):
+        # Interpolamos las coordenadas entre el inicio y la llegada
+        lat = start_lat + (end_lat - start_lat) * (i / num_points)
+        lon = start_lon + (end_lon - start_lon) * (i / num_points)
+
+        # Añadimos un ligero desplazamiento aleatorio para simular el movimiento del barco
+        lat += random.uniform(-0.005, 0.005)
+        lon += random.uniform(-0.005, 0.005)
+
+        route.append([lat, lon])
+
+    return {'route': route}

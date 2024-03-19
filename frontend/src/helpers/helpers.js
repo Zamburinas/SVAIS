@@ -1,4 +1,4 @@
-const url = '10.26.10.10';
+const url = 'ais.decodifier.uk.to';
 const port = 9002;
 import { Notify } from 'quasar';
 

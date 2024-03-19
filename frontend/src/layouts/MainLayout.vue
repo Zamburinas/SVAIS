@@ -20,6 +20,7 @@
 
     <q-drawer
       v-model="leftDrawerOpen"
+      side="left"
       show-if-above
       bordered
     >

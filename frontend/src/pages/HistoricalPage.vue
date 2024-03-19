@@ -9,7 +9,7 @@
     <q-drawer v-model="showMenu" side="right" content-class="small-drawer" class="menu-list">
       <q-list>
         <!-- Contenido del menú -->
-        <q-item clickable v-ripple v-for="(boat, index) in boats" :key="index" class="boat-item" :class="{ 'selected': boat.checked }">
+        <q-item v-ripple v-for="(boat, index) in boats" :key="index" class="boat-item" :class="{ 'selected': boat.checked }" @click="toggleBoat(boat)">
           <q-item-section>
             <!-- Contenedor del barco (simulando un checkbox) -->
             <label :for="'boat_checkbox_' + index" class="boat-checkbox">
@@ -17,9 +17,9 @@
               <img :src="boat.photo" style="width: 32px; height: 32px; border-radius: 50%;">
               <span>{{ boat.name }}</span>
             </label>
-            <!-- Checkbox oculto -->
-            <input type="checkbox" :id="'boat_checkbox_' + index" v-model="boat.checked" @change="handleBoatSelection(boat)" style="display: none;">
           </q-item-section>
+          <!-- Checkbox oculto -->
+          <input type="checkbox" :id="'boat_checkbox_' + index" v-model="boat.checked" @change="handleBoatSelection(boat)" style="display: none;">
         </q-item>
       </q-list>
     </q-drawer>
@@ -35,7 +35,7 @@ import { inject } from 'vue';
 let markers = new Map(); // Usamos un Map para almacenar los marcadores de barcos
 let routes = new Map(); // Mapa para almacenar las rutas de los barcos
 let helpers = inject('helpers');
-
+let usedColors = new Set();
 
 let showMenu = ref(false); // Variable para controlar la visibilidad del menú
 let map = null; // Variable para almacenar la instancia del mapa
@@ -66,7 +66,7 @@ function toggleMenu() {
   showMenu.value = !showMenu.value;
   const pageContainer = document.querySelector('.q-page-container');
   if (showMenu.value) {
-    pageContainer.style.marginRight = '0';
+    pageContainer.style.paddingRight = '0 !important';
   } 
 }
 
@@ -87,8 +87,16 @@ async function handleBoatSelection(boat) {
       const boatMarker = L.marker(boat.route[boat.route.length - 1], { icon: boatIcon }).addTo(map);
       markers.set(boat, boatMarker); // Asocia el marcador con el barco en el mapa
 
-      const boatRoute = L.polyline(boat.route, { color: 'blue', weight: 5 }).addTo(map);
+      const boatRoute = L.polyline(boat.route, { color: randomColor(usedColors), weight: 5 }).addTo(map); // Asigna un color aleatorio no utilizado a la ruta
       routes.set(boat, boatRoute); // Asocia la ruta con el barco en el mapa
+
+      // Agregar evento de clic a la polylinea para mostrar un popup
+      boatRoute.on('click', function(e) {
+        L.popup()
+          .setLatLng(e.latlng)
+          .setContent('Aquí podemos poner por ahora información sobre la velocidad media y máxima')
+          .openOn(map);
+      });
     }
   } else {
     // Removemos el marcador y la ruta correspondientes al barco deseleccionado
@@ -106,6 +114,19 @@ async function handleBoatSelection(boat) {
   }
 }
 
+// Función para cambiar la selección de un barco cuando se hace clic en toda la fila
+function toggleBoat(boat) {
+  boat.checked = !boat.checked;
+  handleBoatSelection(boat);
+}
+
+function randomColor(usedColors) {
+  let color;
+  do {
+    color = '#' + Math.floor(Math.random()*16777215).toString(16);
+  } while (usedColors.has(color));
+  return color;
+}
 
 onMounted(() => {
   initializeMapAndLocator();
@@ -157,6 +178,7 @@ onMounted(() => {
   border-radius: 8px; /* Bordes redondeados */
   margin-left: 5px;
   margin-right: 5px;
+  cursor: pointer; /* Agrega un cursor de puntero al pasar sobre el elemento */
 }
 
 .boat-item:hover {
