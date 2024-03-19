@@ -10,6 +10,8 @@ android/
 .DS_Store
 __pycache__
 
+*.pyc
+*.csv
 # Log files and databases
 *.log
 *.sqlite
