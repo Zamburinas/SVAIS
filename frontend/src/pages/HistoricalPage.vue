@@ -7,9 +7,12 @@
 
     <!-- Menú desplegable -->
     <q-drawer v-model="showMenu" side="right" content-class="small-drawer" class="menu-list">
+      <div class="search-bar">
+        <input type="text" v-model="searchQuery" @input="search" placeholder="Boat name...">
+      </div>
       <q-list>
         <!-- Contenido del menú -->
-        <q-item v-ripple v-for="(boat, index) in boats" :key="index" class="boat-item" :class="{ 'selected': boat.checked }" @click="toggleBoat(boat)">
+        <q-item v-ripple v-for="(boat, index) in filteredBoats" :key="index" class="boat-item" :class="{ 'selected': boat.checked }" @click="toggleBoat(boat)">
           <q-item-section>
             <!-- Contenedor del barco (simulando un checkbox) -->
             <label :for="'boat_checkbox_' + index" class="boat-checkbox">
@@ -31,7 +34,7 @@ import { onMounted, ref } from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { inject } from 'vue';
-
+let searchQuery="";
 let markers = new Map(); // Usamos un Map para almacenar los marcadores de barcos
 let routes = new Map(); // Mapa para almacenar las rutas de los barcos
 let helpers = inject('helpers');
@@ -40,9 +43,10 @@ let usedColors = new Set();
 let showMenu = ref(false); // Variable para controlar la visibilidad del menú
 let map = null; // Variable para almacenar la instancia del mapa
 let boats = ref([]); // Variable para almacenar los datos de los barcos
+let filteredBoats = ref([]); // Variable para almacenar los barcos filtrados
 
 async function initializeMapAndLocator() {
-  map = L.map('map').setView([42.242306, -8.730914], 14);
+  map = L.map('map').setView([37.0902, -95.7129], 4);
 
   L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
     maxZoom: 19,
@@ -51,14 +55,16 @@ async function initializeMapAndLocator() {
     accessToken: 'pk.eyJ1IjoiYm9id2F0Y2hlcngiLCJhIjoiY2xiMGwwZThrMWg3aTNwcW1mOGRucHh6bSJ9.kNHlmRqkRSxYNeipcKkJhw',
   }).addTo(map);
 
-  let coords = await helpers.getBoatInfo();
+  let coords = JSON.parse(await helpers.getBoatInfo());
   // Asignar los datos de los barcos a la variable boats
   boats.value = coords.map(coord => ({
-    name: coord.name,
-    photo: coord.photo,
+    MMSI: coord.MMSI,
+    name: coord.VesselName,
+    photo: "src/assets/cruise_colored-icon.png",
     checked: false,
     route: [] // Puedes agregar la ruta si también está disponible en coords
   }));
+  filteredBoats.value=boats.value;
 }
 
 // Función para el evento click del botón de menú
@@ -72,12 +78,9 @@ function toggleMenu() {
 
 async function handleBoatSelection(boat) {
   if (boat.checked) {
-    let coords = await helpers.getBoatRoute({"name": boat.name});
-    
-    if (coords.route && coords.route.length > 0) {
-      // Actualizar la ruta del barco con los nuevos datos recibidos
-      boat.route = coords.route;
-
+    let coords = await helpers.getBoatRoute({"MMSI": boat.MMSI});
+    console.log(coords.route);
+    boat.route =  Array.from(coords.route);
       const boatIcon = L.icon({
         iconUrl: 'src/assets/cruise_colored-icon.png',
         iconSize: [32, 32],
@@ -97,7 +100,7 @@ async function handleBoatSelection(boat) {
           .setContent('Aquí podemos poner por ahora información sobre la velocidad media y máxima')
           .openOn(map);
       });
-    }
+
   } else {
     // Removemos el marcador y la ruta correspondientes al barco deseleccionado
     const boatMarker = markers.get(boat);
@@ -126,6 +129,13 @@ function randomColor(usedColors) {
     color = '#' + Math.floor(Math.random()*16777215).toString(16);
   } while (usedColors.has(color));
   return color;
+}
+
+function search() {
+      // Filtrar los barcos que coincidan con la consulta de búsqueda
+      filteredBoats.value = boats.value.filter(boat => {
+    return boat.name.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 }
 
 onMounted(() => {
@@ -160,6 +170,21 @@ onMounted(() => {
   background-color: #f0f0f0; /* Fondo más oscuro para el menú */
 }
 
+
+.search-bar {
+  display: flex;
+  align-items: center;
+}
+
+input[type="text"] {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  flex: 1;
+}
+
+
 .boat-checkbox {
   display: flex;
   align-items: center;
@@ -189,3 +214,5 @@ onMounted(() => {
   background-color: #1976D2 !important;
 }
 </style>
+
+

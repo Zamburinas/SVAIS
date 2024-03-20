@@ -22,12 +22,11 @@ async function initializeMapAndLocator() {
   let coords = await helpers.getAllCoords();
   if(coords){
     coorGoniometros=coords.radiogonos;
-    boats =coords.boats;
-    console.log(boats);
+    boats =JSON.parse(coords.boats);
   }
   
       
-  const map = L.map('map').setView([42.242306, -8.730914], 14)
+  const map = L.map('map').setView([37.0902, -95.7129], 4);
 
   L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
     maxZoom: 19,
@@ -53,8 +52,8 @@ async function initializeMapAndLocator() {
   });
 
   boats.forEach(boat => {
-    const marker = L.marker(boat.slice(0, 2), { icon: boatIcon }).addTo(map);
-    marker.bindPopup(`Latitude: ${boat[0]}, Longitude: ${boat[1]}`);
+    const marker = L.marker([boat.data.LAT,boat.data.LON], { icon: boatIcon }).addTo(map);
+    marker.bindPopup(`Latitude: ${boat.data.LAT}, Longitude: ${boat.data.LON}`);
     marker.on('click', () => {
       if (currentEllipse) {
         currentEllipse.remove();
@@ -69,7 +68,7 @@ async function initializeMapAndLocator() {
       }
 
       
-      drawLinesWithAnimation(map, boat, coorGoniometros.map(antenna => antenna));
+      drawLinesWithAnimation(map, [boat.data.LAT,boat.data.LON], coorGoniometros.map(antenna => antenna));
     });
   });
 
@@ -94,8 +93,7 @@ async function initializeMapAndLocator() {
         var y = center[1] + (0.0001)*semiMajorAxis * Math.cos(angleRad) * Math.sin(angle) + (0.0001)*semiMinorAxis * Math.sin(angleRad) * Math.cos(angle);
         points.push([x, y]);
     }
-    const boatCoordinates = boat;
-    const q = isInsideEllipse(boatCoordinates, center, semiMajorAxis, semiMinorAxis, angle);
+    const q = isInsideEllipse(boat, center, semiMajorAxis, semiMinorAxis, angle);
     const fillColor = q ? '#00FF00' : '#FF0000';
 
     currentEllipse =L.polygon(points, {
@@ -129,8 +127,8 @@ async function initializeMapAndLocator() {
       let steps = 100;
       let step = 0;
 
-      const deltaLat = (boatCoordinates[2] - antennaCoord[0]) / steps;
-      const deltaLng = (boatCoordinates[3] - antennaCoord[1]) / steps;
+      const deltaLat = (boatCoordinates[0] - antennaCoord[0]) / steps;
+      const deltaLng = (boatCoordinates[1] - antennaCoord[1]) / steps;
 
       const lineDrawingInterval = setInterval(() => {
         if (step < steps) {
@@ -142,8 +140,8 @@ async function initializeMapAndLocator() {
           clearInterval(lineDrawingInterval);
           if(currentEllipse){
             currentEllipse.remove();
-          }
-          drawEllipse(map,boatCoordinates.slice(0,2) ,boatCoordinates.slice(2,4),boatCoordinates[4],boatCoordinates[5],boatCoordinates[6]);
+          }                                                       //Por ahora el centro de la elipse es el propio barco
+          drawEllipse(map,[boatCoordinates[0],boatCoordinates[1]] ,[boatCoordinates[0],boatCoordinates[1]],113.5624900059602,127.04089357908843,-135.35846661098765);
         }
       }, 50);
       

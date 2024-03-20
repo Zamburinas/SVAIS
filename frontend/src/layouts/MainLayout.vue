@@ -90,6 +90,12 @@ const loginList = [
     size: 'sm'
   },
   {
+    title: 'Profile',
+    icon: 'person',
+    page: '/profile',
+    size: 'sm'
+  },
+  {
     title: 'Logout',
     icon: 'logout',
     page: 'logout',
