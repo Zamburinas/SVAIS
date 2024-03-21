@@ -6,4 +6,5 @@ DATABASE_NAME = "AIS"
 
 class Database(Enum):
     USERS = "users"
-    Coords="coordinates"
+    COORDS="coordinates"
+    AREAS="protectedAreas"

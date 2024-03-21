@@ -155,3 +155,18 @@ export async function getBoatRoute(boatName) {
       return response.json();
   })
 }
+
+export async function getProtectedAreas() {
+  return await fetch(`http://${url}:${port}/coords/getProtectedAreas`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json"
+    },
+  })
+  .then(response => {
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+      return response.json();
+  })
+}

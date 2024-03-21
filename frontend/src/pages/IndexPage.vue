@@ -9,14 +9,15 @@ import { onMounted, onUnmounted } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { inject } from 'vue';
-
+let Areas;
 let intervalId;
 let currentEllipse = null;
 let currentLines = [];
 let linesGroup = L.layerGroup();
 let helpers= inject('helpers');
-
+let map=null;
 async function initializeMapAndLocator() {
+  if (!map) {
   let coorGoniometros=null;
   let boats =null;
   let coords = await helpers.getAllCoords();
@@ -24,9 +25,10 @@ async function initializeMapAndLocator() {
     coorGoniometros=coords.radiogonos;
     boats =JSON.parse(coords.boats);
   }
+  Areas = await helpers.getProtectedAreas();
   
       
-  const map = L.map('map').setView([37.0902, -95.7129], 4);
+  map= L.map('map').setView([37.0902, -95.7129], 5);
 
   L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
     maxZoom: 19,
@@ -51,6 +53,8 @@ async function initializeMapAndLocator() {
     marker.bindPopup(`Latitude: ${Goni[0]}, Longitude: ${Goni[1]}`);
   });
 
+  drawAreas();
+
   boats.forEach(boat => {
     const marker = L.marker([boat.data.LAT,boat.data.LON], { icon: boatIcon }).addTo(map);
     marker.bindPopup(`Latitude: ${boat.data.LAT}, Longitude: ${boat.data.LON}`);
@@ -66,7 +70,6 @@ async function initializeMapAndLocator() {
         });
         currentLines = [];
       }
-
       
       drawLinesWithAnimation(map, [boat.data.LAT,boat.data.LON], coorGoniometros.map(antenna => antenna));
     });
@@ -102,7 +105,13 @@ async function initializeMapAndLocator() {
         fillOpacity: 0.4,
         interactive: false
     }).addTo(map);
-}
+  }
+  }else{
+    map.eachLayer(layer => {
+      map.removeLayer(layer);
+    });
+  }
+
 
     function isInsideEllipse(point, center, semiMajorAxis, semiMinorAxis, angle) {
       const dx = point[0] - center[0];
@@ -153,6 +162,13 @@ async function initializeMapAndLocator() {
   }
 }
 
+function drawAreas() {
+  console.log("asdasd");
+    Areas.forEach(area => {
+        const coordinates = area.coordinates[0].map(coord => [coord[0], coord[1]]);
+        L.polygon(coordinates, { color: 'red' }).addTo(map);
+    });
+}
 
 
 

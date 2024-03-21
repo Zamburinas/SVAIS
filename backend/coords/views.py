@@ -26,7 +26,7 @@ def coords(request):
             }
         ]
 
-        resultados = list(db[Database.Coords.value].aggregate((pipeline)))
+        resultados = list(db[Database.COORDS.value].aggregate((pipeline)))
 
         for item in resultados:
             item['_id'] = str(item['_id'])
@@ -78,7 +78,7 @@ def get_route(request):
             }
         ]
 
-        resultado = list(db[Database.Coords.value].aggregate(pipeline))
+        resultado = list(db[Database.COORDS.value].aggregate(pipeline))
         
         return JsonResponse({"route": [(doc["LAT"], doc["LON"]) for doc in resultado]})
     else:
@@ -107,7 +107,7 @@ def boat_info(request):
             }
         ]
 
-        resultados = list(db[Database.Coords.value].aggregate(pipeline))
+        resultados = list(db[Database.COORDS.value].aggregate(pipeline))
         
 
         return JsonResponse(json.dumps(resultados), safe=False)
@@ -136,3 +136,18 @@ def generate_route(start_lat,start_lon,end_lat,end_lon,num_points):
         route.append([lat, lon])
 
     return {'route': route}
+
+
+def getProtectedAreas(request):
+    if request.method == 'GET':
+        db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
+        areas = list(db[Database.AREAS.value].find())  # Convertir el resultado a una lista de documentos
+        
+        # Eliminar el campo '_id' de cada documento
+        for area in areas:
+            del area['_id']
+        
+        return JsonResponse(areas, safe=False) 
+        
+    else: 
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
