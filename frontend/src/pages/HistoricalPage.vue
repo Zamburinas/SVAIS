@@ -39,7 +39,7 @@ let markers = new Map(); // Usamos un Map para almacenar los marcadores de barco
 let routes = new Map(); // Mapa para almacenar las rutas de los barcos
 let helpers = inject('helpers');
 let usedColors = new Set();
-
+let pointMarkers= new Map();
 let showMenu = ref(false); // Variable para controlar la visibilidad del menú
 let map = null; // Variable para almacenar la instancia del mapa
 let boats = ref([]); // Variable para almacenar los datos de los barcos
@@ -65,6 +65,8 @@ async function initializeMapAndLocator() {
     route: [] // Puedes agregar la ruta si también está disponible en coords
   }));
   filteredBoats.value=boats.value;
+
+
 }
 
 // Función para el evento click del botón de menú
@@ -79,7 +81,6 @@ function toggleMenu() {
 async function handleBoatSelection(boat) {
   if (boat.checked) {
     let coords = await helpers.getBoatRoute({"MMSI": boat.MMSI});
-    console.log(coords.route);
     boat.route =  Array.from(coords.route);
       const boatIcon = L.icon({
         iconUrl: 'src/assets/cruise_colored-icon.png',
@@ -87,7 +88,7 @@ async function handleBoatSelection(boat) {
         iconAnchor: [16, 16],
       });
 
-      const boatMarker = L.marker(boat.route[boat.route.length - 1], { icon: boatIcon }).addTo(map);
+const boatMarker = L.marker(boat.route[boat.route.length - 1], { icon: boatIcon }).addTo(map);
       markers.set(boat, boatMarker); // Asocia el marcador con el barco en el mapa
 
       const boatRoute = L.polyline(boat.route, { color: randomColor(usedColors), weight: 5 }).addTo(map); // Asigna un color aleatorio no utilizado a la ruta
@@ -101,6 +102,17 @@ async function handleBoatSelection(boat) {
           .openOn(map);
       });
 
+      // Agregar marcadores en los puntos de la rut
+      const PointIcon = L.icon({
+        iconUrl: 'src/assets/point.png',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+      });
+      // Crear marcadores para todos los puntos de la ruta excepto el último
+      const pointMarkersArray = boat.route.slice(0, -1).map(coord => L.marker(coord, { icon: PointIcon }).addTo(map));
+      pointMarkers.set(boat, pointMarkersArray);
+
+      
   } else {
     // Removemos el marcador y la ruta correspondientes al barco deseleccionado
     const boatMarker = markers.get(boat);
@@ -113,6 +125,11 @@ async function handleBoatSelection(boat) {
     if (boatRoute) {
       map.removeLayer(boatRoute);
       routes.delete(boat);
+    }
+    const boatPointMarkers = pointMarkers.get(boat);
+    if (boatPointMarkers) {
+      boatPointMarkers.forEach(marker => map.removeLayer(marker));
+      pointMarkers.delete(boat);
     }
   }
 }
