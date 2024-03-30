@@ -21,7 +21,7 @@ export async function login(email, password) {
   })
   .then(data => {
     sessionStorage.setItem('token', data['token']);
-    pushNotification('positive', 'Successfully logged in.')
+    pushNotification('positive', 'Successfully logged in.', 'top')
     return true;
   })
   .catch(error => {
@@ -77,7 +77,7 @@ export async function checkToken() {
   });
 }
 
-export async function logout(router) {
+export async function logout(router, authObject = ref) {
   pushNotification(
     'light-blue',
     'Are you sure want to logout?',
@@ -85,6 +85,7 @@ export async function logout(router) {
     [
       { label: 'Yes', color: 'white', handler: () => {
         sessionStorage.removeItem('token');
+        authObject.value = false;
         router('/login')
        } 
       },

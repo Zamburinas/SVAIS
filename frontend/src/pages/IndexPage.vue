@@ -163,7 +163,6 @@ async function initializeMapAndLocator() {
 }
 
 function drawAreas() {
-  console.log("asdasd");
     Areas.forEach(area => {
         const coordinates = area.coordinates[0].map(coord => [coord[0], coord[1]]);
         L.polygon(coordinates, { color: 'red' }).addTo(map);
