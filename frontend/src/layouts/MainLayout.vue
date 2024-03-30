@@ -38,11 +38,13 @@
 
     <div>
       <q-dialog v-model="showDialog">
-        <q-card>
+        <q-card @keyup.enter="confirmPhoto()">
           <q-card-section v-if="capturedImage">
             <q-img :src="capturedImage" alt="Captured Image" style="max-width: 100%;" />
+            <q-input v-model="password" label="Password" type="password"/>
           </q-card-section>
-          <q-card-section> 
+          <q-card-section>
+            <!-- Capture and confirm buttons -->
             <q-btn label="Capture" color="primary" @click="captureImage" />
             <q-btn v-if="capturedImage" label="Confirm" color="green" @click="confirmPhoto" class="confirm-button" />
             <q-btn label="Cancel" color="negative" @click="cancelCapture" />
@@ -125,6 +127,7 @@ export default defineComponent({
     var userData = ref({});
     var showDialog = ref();
     var capturedImage = ref();
+    var password = ref('');
 
     // Check if token exists
     if (helpers && helpers.checkToken && helpers.checkToken()) {
@@ -137,7 +140,6 @@ export default defineComponent({
 
     const navigate = (page) => {
       if (page === 'logout') {
-        logic
         helpers.logout(router.push, isAuthenticated);
       } else {
         router.push(page);
@@ -209,9 +211,10 @@ export default defineComponent({
       showDialog.value = false;
     }
 
-    const confirmPhoto = () => {
+    const confirmPhoto = async () => {
       // You can implement further actions here, such as saving the image or processing it
-      userData.value.two_factor_auth = helpers.sendImageToBackend(capturedImage.value);
+      console.log(password)
+      userData.value.two_factor_auth = await helpers.sendImageToBackend(capturedImage.value, password.value);
     }
 
     return {
@@ -221,6 +224,7 @@ export default defineComponent({
       userData,
       showDialog,
       capturedImage,
+      password,
       toggleLeftDrawer,
       navigate,
       toggleChanged,

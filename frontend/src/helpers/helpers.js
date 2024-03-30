@@ -180,7 +180,7 @@ export async function getProtectedAreas() {
     })
 }
 
-export async function sendImageToBackend(imageFile) {
+export async function sendImageToBackend(imageFile, password) {
   return await fetch(`http://${url}:${port}/users/twoFactorAuth`, {
     method: "POST",
     headers: {
@@ -188,6 +188,8 @@ export async function sendImageToBackend(imageFile) {
     },
     body: JSON.stringify({
       image: imageFile.split(',')[1],
+      email: SessionStorage.getItem('user').email,
+      password: password
     }),
   }).then(async response => {
     if (!response.ok) {
