@@ -3,29 +3,28 @@
     <div id="map"></div>
 
     <!-- Botón para abrir el menú desplegable -->
-    <q-btn @click="toggleMenu" class="absolute-top-right">Menú</q-btn>
-
-    <!-- Menú desplegable -->
-    <q-drawer v-model="showMenu" side="right" content-class="small-drawer" class="menu-list">
-      <div class="search-bar">
-        <input type="text" v-model="searchQuery" @input="search" placeholder="Boat name...">
-      </div>
-      <q-list>
-        <!-- Contenido del menú -->
-        <q-item v-ripple v-for="(boat, index) in filteredBoats" :key="index" class="boat-item" :class="{ 'selected': boat.checked }" @click="toggleBoat(boat)">
-          <q-item-section>
-            <!-- Contenedor del barco (simulando un checkbox) -->
-            <label :for="'boat_checkbox_' + index" class="boat-checkbox">
-              <!-- Foto y nombre del barco -->
-              <img :src="boat.photo" style="width: 32px; height: 32px; border-radius: 50%;">
-              <span>{{ boat.name }}</span>
-            </label>
-          </q-item-section>
-          <!-- Checkbox oculto -->
-          <input type="checkbox" :id="'boat_checkbox_' + index" v-model="boat.checked" @change="handleBoatSelection(boat)" style="display: none;">
-        </q-item>
-      </q-list>
-    </q-drawer>
+    <q-btn class="menu-button" label="Menu">
+      <q-menu fit>
+        <div class="q-pa-md">
+          <q-input outlined v-model="searchQuery" @keyup="search" placeholder="Search boats...">
+          </q-input>
+        </div>
+        <q-virtual-scroll :items="filteredBoats" item-height="50">
+          <template v-slot="{ item }">
+            <q-item clickable v-ripple :class="{ 'selected': item.checked }" @click="toggleBoat(item)">
+              <q-item-section>
+                <label :for="'boat_checkbox_' + item.index" class="boat-checkbox">
+                  <img :src="item.photo" style="width: 32px; height: 32px; border-radius: 50%;">
+                  <span>{{ item.name }}</span>
+                </label>
+              </q-item-section>
+              <!-- <input type="checkbox" :id="'boat_checkbox_' + item.index" v-model="item.checked"
+                @change="handleBoatSelection(item)" style="display: none;"> -->
+            </q-item>
+          </template>
+        </q-virtual-scroll>
+      </q-menu>
+    </q-btn>
   </q-page>
 </template>
 
@@ -34,13 +33,12 @@ import { onMounted, ref } from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { inject } from 'vue';
-let searchQuery="";
+let searchQuery = "";
 let markers = new Map(); // Usamos un Map para almacenar los marcadores de barcos
 let routes = new Map(); // Mapa para almacenar las rutas de los barcos
 let helpers = inject('helpers');
 let usedColors = new Set();
-let pointMarkers= new Map();
-let showMenu = ref(false); // Variable para controlar la visibilidad del menú
+let pointMarkers = new Map();
 let map = null; // Variable para almacenar la instancia del mapa
 let boats = ref([]); // Variable para almacenar los datos de los barcos
 let filteredBoats = ref([]); // Variable para almacenar los barcos filtrados
@@ -64,73 +62,80 @@ async function initializeMapAndLocator() {
     checked: false,
     route: [] // Puedes agregar la ruta si también está disponible en coords
   }));
-  filteredBoats.value=boats.value;
-
-
-}
-
-// Función para el evento click del botón de menú
-function toggleMenu() {
-  showMenu.value = !showMenu.value;
-  const pageContainer = document.querySelector('.q-page-container');
-  if (showMenu.value) {
-    pageContainer.style.paddingRight = '0 !important';
-  } 
+  filteredBoats.value = boats.value;
 }
 
 async function handleBoatSelection(boat) {
   if (boat.checked) {
-    let coords = await helpers.getBoatRoute({"MMSI": boat.MMSI});
-    boat.route =  Array.from(coords.route);
+    try {
+      const coords = await helpers.getBoatRoute({ "MMSI": boat.MMSI });
+
+      // Create boat icon
       const boatIcon = L.icon({
         iconUrl: 'src/assets/cruise_colored-icon.png',
         iconSize: [32, 32],
         iconAnchor: [16, 16],
       });
 
-const boatMarker = L.marker(boat.route[boat.route.length - 1], { icon: boatIcon }).addTo(map);
-      markers.set(boat, boatMarker); // Asocia el marcador con el barco en el mapa
+      // Create and add boat marker to map
+      const boatMarker = L.marker(coords.route[coords.route.length - 1], { icon: boatIcon }).addTo(map);
+      markers.set(boat, boatMarker); // Associate the marker with the boat on the map
 
-      const boatRoute = L.polyline(boat.route, { color: randomColor(usedColors), weight: 5 }).addTo(map); // Asigna un color aleatorio no utilizado a la ruta
-      routes.set(boat, boatRoute); // Asocia la ruta con el barco en el mapa
+      // Create and add boat route to map
+      const boatRoute = L.polyline(coords.route, { color: randomColor(usedColors), weight: 5 }).addTo(map);
+      routes.set(boat, boatRoute); // Associate the route with the boat on the map
 
-      // Agregar evento de clic a la polylinea para mostrar un popup
-      boatRoute.on('click', function(e) {
+      // Add click event to boat route to show popup
+      boatRoute.on('click', function (e) {
         L.popup()
           .setLatLng(e.latlng)
-          .setContent('Aquí podemos poner por ahora información sobre la velocidad media y máxima')
+          .setContent('Here we can put information about the average and maximum speed for now')
           .openOn(map);
       });
 
-      // Agregar marcadores en los puntos de la rut
+      // Create markers for all points in the route except the last one
       const PointIcon = L.icon({
         iconUrl: 'src/assets/point.png',
         iconSize: [16, 16],
         iconAnchor: [8, 8],
       });
-      // Crear marcadores para todos los puntos de la ruta excepto el último
-      const pointMarkersArray = boat.route.slice(0, -1).map(coord => L.marker(coord, { icon: PointIcon }).addTo(map));
+      const pointMarkersArray = coords.route.slice(0, -1).map(coord => L.marker(coord, { icon: PointIcon }).addTo(map));
       pointMarkers.set(boat, pointMarkersArray);
-
-      
+    } catch (error) {
+      console.error('Error fetching boat route:', error);
+    }
   } else {
-    // Removemos el marcador y la ruta correspondientes al barco deseleccionado
-    const boatMarker = markers.get(boat);
-    if (boatMarker) {
-      map.removeLayer(boatMarker);
-      markers.delete(boat);
-    }
+    removeBoat(boat);
+  }
+}
 
-    const boatRoute = routes.get(boat);
-    if (boatRoute) {
-      map.removeLayer(boatRoute);
-      routes.delete(boat);
-    }
-    const boatPointMarkers = pointMarkers.get(boat);
-    if (boatPointMarkers) {
-      boatPointMarkers.forEach(marker => map.removeLayer(marker));
-      pointMarkers.delete(boat);
-    }
+function removeBoat(boat) {
+  // Remove boat marker, route, and point markers associated with the deselected boat
+  removeMarker(markers.get(boat));
+  removeRoute(routes.get(boat));
+  removePointMarkers(pointMarkers.get(boat));
+
+  // Remove boat from maps
+  markers.delete(boat);
+  routes.delete(boat);
+  pointMarkers.delete(boat);
+}
+
+function removeMarker(marker) {
+  if (marker) {
+    map.removeLayer(marker);
+  }
+}
+
+function removeRoute(route) {
+  if (route) {
+    map.removeLayer(route);
+  }
+}
+
+function removePointMarkers(pointMarkersArray) {
+  if (pointMarkersArray) {
+    pointMarkersArray.forEach(marker => map.removeLayer(marker));
   }
 }
 
@@ -143,21 +148,21 @@ function toggleBoat(boat) {
 function randomColor(usedColors) {
   let color;
   do {
-    color = '#' + Math.floor(Math.random()*16777215).toString(16);
+    color = '#' + Math.floor(Math.random() * 16777215).toString(16);
   } while (usedColors.has(color));
   return color;
 }
 
 function search() {
-      // Filtrar los barcos que coincidan con la consulta de búsqueda
-      filteredBoats.value = boats.value.filter(boat => {
+  // Filtrar los barcos que coincidan con la consulta de búsqueda
+  filteredBoats.value = boats.value.filter(boat => {
     return boat.name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 }
-
 onMounted(() => {
   initializeMapAndLocator();
 });
+
 </script>
 
 <style>
@@ -165,71 +170,19 @@ onMounted(() => {
   width: 100%;
   height: 92vh;
   position: relative;
+  z-index: 1;
 }
 
-.absolute-top-right {
+.menu-button {
+  z-index: 2;
+  background-color: #1976D2;
   position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 100;
-}
-
-.q-btn {
-  background-color: #2196f3; /* Cambia el color de fondo del botón */
-  color: white; /* Cambia el color del texto del botón a blanco */
-}
-
-.small-drawer {
-  width: 200px; /* Define el ancho deseado para el menú desplegable */
-}
-
-.menu-list {
-  background-color: #f0f0f0; /* Fondo más oscuro para el menú */
-}
-
-
-.search-bar {
-  display: flex;
-  align-items: center;
-}
-
-input[type="text"] {
-  padding: 10px;
-  font-size: 16px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  flex: 1;
-}
-
-
-.boat-checkbox {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  padding: 10px;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-}
-
-.boat-info {
-  margin-left: 10px;
-}
-
-.boat-item {
-  margin-bottom: 5px; /* Espacio entre elementos */
-  border-radius: 8px; /* Bordes redondeados */
-  margin-left: 5px;
-  margin-right: 5px;
-  cursor: pointer; /* Agrega un cursor de puntero al pasar sobre el elemento */
-}
-
-.boat-item:hover {
-  background-color: #e0e0e0; /* Color de fondo más claro al pasar el ratón */
+  top: 1vh;
+  right: 1vw;
+  color: white;
 }
 
 .selected {
-  background-color: #1976D2 !important;
+  background-color: #9ecfff !important;
 }
 </style>
-
-
