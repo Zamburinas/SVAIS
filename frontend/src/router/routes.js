@@ -69,25 +69,6 @@ const routes = [
       }
     ]
   },
-  // {
-  //   path: '/profile',
-  //   component: () => import('layouts/MainLayout.vue'),
-  //   children: [
-  //     { 
-  //       path: '', 
-  //       component: () => import('pages/ProfilePage.vue'),
-  //       name: 'profile'
-  //     }
-  //   ],
-  //   beforeEnter: async (to, from, next) => {
-  //     const token = await helpers.checkToken();
-  //     if (!token) {
-  //       next({ name: 'login' });
-  //     } else {
-  //       next();
-  //     }
-  //   }
-  // },
   // Always leave this as last one,
   // but you can also remove it
   {

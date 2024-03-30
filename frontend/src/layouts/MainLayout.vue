@@ -10,7 +10,7 @@
         <div v-if=isAuthenticated>
           <q-btn flat color="primary">
             <q-avatar style="background-color: #eee;">
-              <q-icon name="person" color="primary" size="sm"/>
+              <q-icon name="person" color="primary" size="sm" />
             </q-avatar>
             <q-menu>
               <div class="row no-wrap q-pa-md">
@@ -73,7 +73,7 @@ const notLoginList = [
   },
   {
     title: 'Signup',
-    icon: 'profile',
+    icon: 'how_to_reg',
     page: '/register',
     size: 'sm'
   },
@@ -92,19 +92,7 @@ const loginList = [
     icon: 'list',
     page: '/historical',
     size: 'sm'
-  },
-  // {
-  //   title: 'Profile',
-  //   icon: 'person',
-  //   page: '/profile',
-  //   size: 'sm'
-  // },
-  // {
-  //   title: 'Logout',
-  //   icon: 'logout',
-  //   page: 'logout',
-  //   size: 'sm'
-  // },
+  }
 ]
 
 export default defineComponent({
@@ -115,14 +103,14 @@ export default defineComponent({
     const leftDrawerOpen = ref(false)
     const helpers = inject('helpers')
     var isAuthenticated = ref()
-    let essentialLinks;
+    var essentialLinks = ref([]);
 
     // Check if token exists
     if (helpers && helpers.checkToken && helpers.checkToken()) {
-      essentialLinks = loginList;
+      essentialLinks.value = loginList;
       isAuthenticated.value = true;
     } else {
-      essentialLinks = notLoginList;
+      essentialLinks.value = notLoginList;
       isAuthenticated.value = false;
     }
 
@@ -137,6 +125,16 @@ export default defineComponent({
     const toggleLeftDrawer = () => {
       leftDrawerOpen.value = !leftDrawerOpen.value;
     }
+
+    window.addEventListener('Auth', (event) => {
+      isAuthenticated.value = true;
+      essentialLinks.value = loginList;
+    });
+
+    window.addEventListener('notAuth', (event) => {
+      isAuthenticated.value = false;
+      essentialLinks.value = notLoginList;
+    });
 
     return {
       essentialLinks,

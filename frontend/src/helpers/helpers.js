@@ -1,6 +1,6 @@
 const url = 'ais.decodifier.uk.to';
 const port = 9002;
-import { Notify } from 'quasar';
+import { Notify, SessionStorage } from 'quasar';
 
 export async function login(email, password) {
   return await fetch(`http://${url}:${port}/users/login`, {
@@ -20,7 +20,8 @@ export async function login(email, password) {
       return response.json();
   })
   .then(data => {
-    sessionStorage.setItem('token', data['token']);
+    SessionStorage.set('token', data['token']);
+    authenticated();
     pushNotification('positive', 'Successfully logged in.', 'top')
     return true;
   })
@@ -60,7 +61,7 @@ export async function checkToken() {
     headers: {
       "Content-Type": "application/json",    },
     body: JSON.stringify({
-      token: sessionStorage.getItem('token'),
+      token: SessionStorage.getItem('token'),
     }),
   })
   .then(response => {
@@ -70,9 +71,11 @@ export async function checkToken() {
       return response.json();
   })
   .then(data => {
+    authenticated();
     return true;
   })
   .catch(error => {
+    notAuthenticated();
     return false;
   });
 }
@@ -84,8 +87,8 @@ export async function logout(router, authObject = ref) {
     'top',
     [
       { label: 'Yes', color: 'white', handler: () => {
-        sessionStorage.removeItem('token');
-        authObject.value = false;
+        SessionStorage.remove('token');
+        notAuthenticated();
         router('/login')
        } 
       },
@@ -170,4 +173,12 @@ export async function getProtectedAreas() {
       }
       return response.json();
   })
+}
+
+function authenticated () {
+  window.dispatchEvent(new CustomEvent('Auth'));
+}
+
+function notAuthenticated(){
+  window.dispatchEvent(new CustomEvent('notAuth'));
 }
