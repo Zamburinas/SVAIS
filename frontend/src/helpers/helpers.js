@@ -53,7 +53,7 @@ export async function register(userData) {
       return response.json();
     })
     .then(data => {
-      pushNotification('positive', 'Successfully signed up.');
+      pushNotification('positive', data.message);
       return true;
     })
     .catch(error => {
@@ -246,6 +246,35 @@ export async function takePhoto() {
   } catch (error) {
     console.error('Error capturing image:', error);
   }
+}
+
+export async function disableTwoFactor(password) {
+  return await fetch(`http://${url}:${port}/users/disableTwoFactor`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      email: SessionStorage.getItem('user').email,
+      password: password,
+    }),
+  })
+    .then(async response => {
+      if (!response.ok) {
+        let responseJson = await response.json();
+        let message = responseJson.msg;
+        throw new Error(message);
+      }
+      return response.json();
+    })
+    .then(data => {
+      pushNotification('positive', data.message, 'top')
+      return true;
+    })
+    .catch(error => {
+      pushNotification('negative', error.message)
+      return false;
+    });
 }
 
 function authenticated() {

@@ -40,18 +40,37 @@
       <q-dialog v-model="showDialog">
         <q-card @keyup.enter="confirmPhoto()">
           <q-card-section v-if="capturedImage">
-            <q-img :src="capturedImage" alt="Captured Image" style="max-width: 100%;" />
-            <q-input v-model="password" label="Password" type="password"/>
+            <q-img :src="capturedImage" alt="Captured Image" style="width: 20vw; height: 100%;
+          box-shadow: rgba(0, 0, 0, 0.25) 0px 14px 28px, rgba(0, 0, 0, 0.22) 0px 10px 10px; border-radius: 5px" />
+            <!-- <q-input v-model="password" label="Password" type="password" /> -->
+            <q-input dense outlined class="q-mt-md" v-model="password" type="password" label="Password">
+            </q-input>
           </q-card-section>
-          <q-card-section>
+          <q-card-actions align="center">
             <!-- Capture and confirm buttons -->
             <q-btn label="Capture" color="primary" @click="captureImage" />
             <q-btn v-if="capturedImage" label="Confirm" color="green" @click="confirmPhoto" class="confirm-button" />
             <q-btn label="Cancel" color="negative" @click="closePopup" />
-          </q-card-section>
+          </q-card-actions>
         </q-card>
       </q-dialog>
     </div>
+
+    <q-dialog v-model="showAlert">
+      <q-card>
+        <q-card-section class="text-center">
+          <div class="q-pa-md">
+            <div class="text-h6">Are you sure you want to disable two-factor authentication?</div>
+          </div>
+          <q-input dense outlined class="q-mt-md" v-model="password" type="password" label="Password">
+          </q-input>
+        </q-card-section>
+        <q-card-actions align="center">
+          <q-btn label="Cancel" color="primary" @click="closePopup" />
+          <q-btn label="Disable" color="negative" @click="disableTwoFactorAuth()" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <q-drawer v-model="leftDrawerOpen" side="left" show-if-above bordered>
       <q-list>
@@ -128,6 +147,7 @@ export default defineComponent({
     var showDialog = ref();
     var capturedImage = ref();
     var password = ref('');
+    var showAlert = ref(false);
 
     // Check if token exists
     if (helpers && helpers.checkToken && helpers.checkToken()) {
@@ -167,6 +187,9 @@ export default defineComponent({
         // If toggle value is true, show the popup
         showDialog.value = true;
         userData.value.two_factor_auth = false;
+      } else {
+        showAlert.value = true;
+        userData.value.two_factor_auth = true;
       }
     };
 
@@ -179,6 +202,7 @@ export default defineComponent({
       showDialog.value = false;
       password.value = '';
       capturedImage.value = '';
+      showAlert.value = false;
     }
 
     const confirmPhoto = async () => {
@@ -187,7 +211,13 @@ export default defineComponent({
         closePopup();
       }
     }
-
+    
+    const disableTwoFactorAuth = async () => {
+      userData.value.two_factor_auth = !(await helpers.disableTwoFactor(password.value));
+      if (!userData.value.two_factor_auth) {
+        showAlert.value = false;
+      }
+    }
     return {
       essentialLinks,
       leftDrawerOpen,
@@ -196,6 +226,8 @@ export default defineComponent({
       showDialog,
       capturedImage,
       password,
+      showAlert,
+      disableTwoFactorAuth,
       toggleLeftDrawer,
       navigate,
       toggleChanged,

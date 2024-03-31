@@ -49,6 +49,7 @@ def login(request):
             {
                 "token": token,
                 "user_info": {key: user_data.get(key) for key in desired_keys},
+                "msg": "Succesfully logged in!",
             }
         )
 
@@ -118,9 +119,40 @@ def twoFactorAuth(request):
                 },
             )
         except Exception as e:
-            with open("error.txt", "w") as file:
-                file.write(str(e))
+            return JsonResponse({"msg": "An error has ocurred"}, status=500)
+
         return JsonResponse({"message": "Image uploaded successfully"})
+
+    else:
+        return JsonResponse({"msg": "Method not allowed"}, status=405)
+
+
+def disableTwoFactor(request):
+    if request.method == "POST":
+        body = json.loads(request.body)
+
+        email = body["email"]
+        password = body["password"]
+
+        if not _check_credentials(email, password):
+            return JsonResponse({"msg": "Wrong credentials."}, status=400)
+
+        try:
+            collection.update_one(
+                {"email": body["email"]},
+                {
+                    "$set": {
+                        "two_factor_auth": False,
+                        "tfa_enc": None,
+                    }
+                },
+            )
+        except Exception as e:
+            return JsonResponse({"msg": "An error has ocurred"}, status=500)
+
+        return JsonResponse(
+            {"message": "Two Factor Authentication disabled succesfully."}
+        )
 
     else:
         return JsonResponse({"msg": "Method not allowed"}, status=405)
