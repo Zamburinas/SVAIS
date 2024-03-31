@@ -1,8 +1,8 @@
-const url = 'ais.decodifier.uk.to';
+const url = 'localhost';
 const port = 9002;
 import { Notify, SessionStorage } from 'quasar';
 
-export async function login(email, password) {
+export async function login(email, password, tfa) {
   return await fetch(`http://${url}:${port}/users/login`, {
     method: "POST",
     headers: {
@@ -11,20 +11,22 @@ export async function login(email, password) {
     body: JSON.stringify({
       email: email,
       password: password,
+      tfa: tfa.split(',').length === 2 ? tfa.split(',')[1] : tfa.split(',')[0]
     }),
   })
     .then(async response => {
       if (!response.ok) {
         let responseJson = await response.json();
         let message = responseJson.msg;
+        if (responseJson.tfa) {
+          askTwoFactorAuth();
+        }
         throw new Error(message);
       }
       return response.json();
     })
     .then(data => {
       saveToken(data);
-      // SessionStorage.set('token', data['token']);
-      // authenticated();
       pushNotification('positive', 'Successfully logged in.', 'top')
       return true;
     })
@@ -86,7 +88,7 @@ export async function checkToken() {
     });
 }
 
-export async function logout(router, authObject = ref) {
+export async function logout(router) {
   pushNotification(
     'light-blue',
     'Are you sure want to logout?',
@@ -105,7 +107,7 @@ export async function logout(router, authObject = ref) {
 
 export function pushNotification(color,
   message,
-  position = 'top-right',
+  position = 'top',
   actions = [{
     icon: 'close',
     color: 'white',
@@ -207,8 +209,43 @@ export async function sendImageToBackend(imageFile, password) {
       pushNotification('negative', error.message, 'top')
       return false;
     });
+}
+
+export async function takePhoto() {
+  try {
+    // Access the user's camera
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+
+    // Create a video element to display the camera stream
+    const videoElement = document.createElement('video');
+    videoElement.srcObject = stream;
+    videoElement.autoplay = true;
+
+    // Wait for the video to load
+    await new Promise(resolve => videoElement.onloadedmetadata = resolve);
+
+    // Create a canvas element to capture the image
+    const canvas = document.createElement('canvas');
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+
+    // Draw the video frame on the canvas
+    const context = canvas.getContext('2d');
+    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+    // Stop the camera stream
+    stream.getVideoTracks().forEach(track => track.stop());
+
+    // Convert the canvas image to a data URL
+    const dataUrl = canvas.toDataURL('image/png');
 
 
+    // Set the captured image
+    return dataUrl;
+
+  } catch (error) {
+    console.error('Error capturing image:', error);
+  }
 }
 
 function authenticated() {
@@ -229,4 +266,9 @@ function deleteToken() {
   SessionStorage.remove('token');
   SessionStorage.remove('user');
   notAuthenticated();
+}
+
+function askTwoFactorAuth() {
+  SessionStorage.set('required', { 'tfa': true });
+  window.dispatchEvent(new CustomEvent('tfa'));
 }

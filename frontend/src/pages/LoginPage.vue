@@ -1,46 +1,29 @@
 <template>
   <q-page class="flex flex-center bg-grey-2">
-    <q-card 
-      class="q-pa-md shadow-2 my_card" 
-      bordered
-      @keyup.enter="login()">
+    <q-card class="q-pa-md shadow-2 my_card" bordered @keyup.enter="login()">
       <q-card-section class="text-center">
         <div class="text-blue-9 text-h5 text-weight-bold">Sign in</div>
         <div class="text-grey-8">Sign in below to access your account</div>
       </q-card-section>
       <q-card-section>
-        <q-input 
-          dense 
-          outlined 
-          color = "primary"
-          v-model = "email" 
-          label = "Email Address">
+        <q-input dense outlined color="primary" v-model="email" label="Email Address">
         </q-input>
-        <q-input 
-          dense 
-          outlined 
-          class = "q-mt-md" 
-          v-model = "password" 
-          type = "password" 
-          label = "Password">
+        <q-input dense outlined class="q-mt-md" v-model="password" type="password" label="Password">
         </q-input>
+        <q-img v-if="this.tfa" :src="this.capturedImage" alt="Captured Image"
+          style="margin-top: 5%; max-width: 100%; border: 1px solid blue; border-radius: 5px;" />
       </q-card-section>
-      <q-card-section>
+      <q-card-section style="display: flex; gap: 5%">
+        <q-btn v-if="this.tfa" label="Capture" @click="captureImage" style="
+          border-radius: 8px;" color="primary" rounded size="md" no-caps class="full-width" />
         <q-btn style="
-          border-radius: 8px;" 
-          color = "blue" 
-          rounded size="md" 
-          label = "Sign in" 
-          no-caps 
-          class = "full-width"
+          border-radius: 8px;" color="blue" rounded size="md" label="Sign in" no-caps class="full-width"
           @click="login()">
-      </q-btn>
+        </q-btn>
       </q-card-section>
       <q-card-section class="text-center q-pt-none">
         <div class="text-blue-8">Don't have an account yet?
-          <a 
-            class="text-blue text-weight-bold" 
-            style="text-decoration: none; cursor: pointer;"
+          <a class="text-blue text-weight-bold" style="text-decoration: none; cursor: pointer;"
             @click="this.$router.push({ name: 'register' })">
             Sign up.
           </a>
@@ -51,26 +34,35 @@
 </template>
 
 <script>
-import { inject } from 'vue';
+import { SessionStorage } from 'quasar';
+import { inject, ref } from 'vue';
 
 export default {
   data: () => {
     return {
       email: "",
       password: "",
-      helpers: inject('helpers')
+      helpers: inject('helpers'),
+      tfa: ref(false),
+      capturedImage: ref('')
     };
+  },
+  created() {
+    window.addEventListener('tfa', (event) => {
+      let sessionRequired = SessionStorage.getItem('required');
+      sessionRequired = sessionRequired.tfa;
+      this.tfa = sessionRequired;
+    });
   },
   methods: {
     async login() {
       if (!this.validateEmail()) {
         return;
-      } 
-      let loginRedirect = await this.helpers.login(this.email, this.password);
+      }
+      let loginRedirect = await this.helpers.login(this.email, this.password, this.capturedImage);
       if (loginRedirect) {
         this.$router.push({ name: 'map' });
       }
-
     },
     validateEmail() {
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -79,6 +71,9 @@ export default {
         return false;
       }
       return true;
+    },
+    async captureImage() {
+      this.capturedImage = await this.helpers.takePhoto();
     }
   },
 };

@@ -47,7 +47,7 @@
             <!-- Capture and confirm buttons -->
             <q-btn label="Capture" color="primary" @click="captureImage" />
             <q-btn v-if="capturedImage" label="Confirm" color="green" @click="confirmPhoto" class="confirm-button" />
-            <q-btn label="Cancel" color="negative" @click="cancelCapture" />
+            <q-btn label="Cancel" color="negative" @click="closePopup" />
           </q-card-section>
         </q-card>
       </q-dialog>
@@ -166,55 +166,26 @@ export default defineComponent({
       if (userData.value.two_factor_auth) {
         // If toggle value is true, show the popup
         showDialog.value = true;
+        userData.value.two_factor_auth = false;
       }
     };
 
     const captureImage = async () => {
-      try {
-        // Access the user's camera
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-
-        // Create a video element to display the camera stream
-        const videoElement = document.createElement('video');
-        videoElement.srcObject = stream;
-        videoElement.autoplay = true;
-
-        // Wait for the video to load
-        await new Promise(resolve => videoElement.onloadedmetadata = resolve);
-
-        // Create a canvas element to capture the image
-        const canvas = document.createElement('canvas');
-        canvas.width = videoElement.videoWidth;
-        canvas.height = videoElement.videoHeight;
-
-        // Draw the video frame on the canvas
-        const context = canvas.getContext('2d');
-        context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-
-        // Stop the camera stream
-        stream.getVideoTracks().forEach(track => track.stop());
-
-        // Convert the canvas image to a data URL
-        const dataUrl = canvas.toDataURL('image/png');
-
-
-        // Set the captured image
-        capturedImage.value = dataUrl;
-
-      } catch (error) {
-        console.error('Error capturing image:', error);
-      }
+      capturedImage.value = await helpers.takePhoto();
     }
 
-    const cancelCapture = () => {
+    const closePopup = () => {
       // Close the dialog without capturing an image
       showDialog.value = false;
+      password.value = '';
+      capturedImage.value = '';
     }
 
     const confirmPhoto = async () => {
-      // You can implement further actions here, such as saving the image or processing it
-      console.log(password)
       userData.value.two_factor_auth = await helpers.sendImageToBackend(capturedImage.value, password.value);
+      if (userData.value.two_factor_auth) {
+        closePopup();
+      }
     }
 
     return {
@@ -229,7 +200,7 @@ export default defineComponent({
       navigate,
       toggleChanged,
       captureImage,
-      cancelCapture,
+      closePopup,
       confirmPhoto
     };
   }

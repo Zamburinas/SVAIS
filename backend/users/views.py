@@ -25,15 +25,24 @@ def login(request):
         body = json.loads(request.body)
         email = body.get("email", None)
         password = body.get("password", None)
+        tfa = body.get("tfa", None)
 
         if email is None or password is None or not _check_credentials(email, password):
             return JsonResponse({"msg": "Email or password not valid"}, status=400)
 
         user_data = _get_credentials(email)
         if user_data["two_factor_auth"]:
-            return JsonResponse(
-                {"msg": "Two Factor Authentication required"}, status=400
-            )
+            if tfa is None:
+                return JsonResponse(
+                    {"msg": "Two Factor Authentication required", "tfa": True},
+                    status=400,
+                )
+
+            if not _two_factor_auth(email, tfa):
+                return JsonResponse(
+                    {"msg": "Two Factor Authentication doesn't match", "tfa": True},
+                    status=400,
+                )
 
         token = Authenticate.encode_auth_token(email, minutes=60)
         return JsonResponse(
@@ -149,17 +158,24 @@ def _two_factor_auth(user, face):
     user = _get_credentials(user)
     if not user:
         return False
-    user_encoded = Authenticate.decrypt(["tfa_enc"])
-    return face_recognition.compare_faces(
-        [user_encoded], face_recognition.face_encodings(face)[0]
-    )[0]
+    user_encoded = user["tfa_enc"]
+    face = _base64_to_numpy(face)
+    try:
+        face_encodings = face_recognition.face_encodings(face)[0]
+    except:
+        return False
+
+    return face_recognition.compare_faces([np.array(user_encoded)], face_encodings)[0]
 
 
 def _base64_to_numpy(base64_string):
     with open("image.jpg", "wb") as f:
         f.write(base64.b64decode(base64_string))
 
-    known_image = face_recognition.load_image_file("image.jpg")
+    try:
+        known_image = face_recognition.load_image_file("image.jpg")
+    except:
+        known_image = np.array([])
 
     os.remove("image.jpg")
 
