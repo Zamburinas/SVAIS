@@ -9,10 +9,9 @@ import math
 # Create your views here.
 
 
+
 def coords(request):
     if request.method == 'GET':
-
-
         db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
         pipeline = [
             {
@@ -27,7 +26,7 @@ def coords(request):
         ]
 
         resultados = list(db[Database.COORDS.value].aggregate((pipeline)))
-
+        
         for item in resultados:
             item['_id'] = str(item['_id'])
             item['data']['_id'] = str(item['data']['_id'])
@@ -37,10 +36,6 @@ def coords(request):
             (56.130366,-106.346771) ,
             (-34.61315,-58.37723) 
         ]
-
-    
-
-            
 
         return JsonResponse({"boats": json.dumps(resultados), "radiogonos": radiogonos})
 

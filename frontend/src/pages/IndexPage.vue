@@ -10,7 +10,6 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { inject } from 'vue';
 let Areas;
-let intervalId;
 let currentEllipse = null;
 let currentLines = [];
 let linesGroup = L.layerGroup();
@@ -26,7 +25,7 @@ async function initializeMapAndLocator() {
     boats =JSON.parse(coords.boats);
   }
   Areas = await helpers.getProtectedAreas();
-  
+  console.log(Areas[0].name);
       
   map= L.map('map').setView([37.0902, -95.7129], 5);
 
@@ -57,7 +56,24 @@ async function initializeMapAndLocator() {
 
   boats.forEach(boat => {
     const marker = L.marker([boat.data.LAT,boat.data.LON], { icon: boatIcon }).addTo(map);
-    marker.bindPopup(`Latitude: ${boat.data.LAT}, Longitude: ${boat.data.LON}`);
+    const date = new Date(boat.data.BaseDateTime);
+    const formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+    const formattedTime = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+
+    var popupContent = `<div class="popup-content">
+                              <span class="label">Boat Name:</span> <span class="boat-name">${boat.data.VesselName}</span><br>
+                              <span class="label">Vessel Type:</span> <span class="vessel-type">${boat.data.VesselType}</span><br>
+                              <span class="label">MMSI:</span> <span class="mmsi">${boat.data.MMSI}</span><br>
+                              <span class="label">Date:</span> <span class="date">${formattedDate}</span><br>
+                              <span class="label">Time:</span> <span class="time">${formattedTime}</span><br>
+                              <span class="label">Status:</span> <span class="status">${boat.data.Status}</span><br>
+                              <span class="label">Latitude:</span> <span class="latitude">${boat.data.LAT}</span><br>
+                              <span class="label">Longitude:</span> <span class="longitude">${boat.data.LON}</span><br>
+                            </div>`;
+
+
+
+    marker.bindPopup(popupContent);
     marker.on('click', () => {
       if (currentEllipse) {
         currentEllipse.remove();
@@ -83,6 +99,12 @@ async function initializeMapAndLocator() {
     }
   });
 
+  }else{
+    map.eachLayer(layer => {
+      map.removeLayer(layer);
+    });
+  }
+
 
   function drawEllipse(map, boat,center, semiMajorAxis, semiMinorAxis, angle) {
     var angle = angle * Math.PI / 180;
@@ -106,24 +128,18 @@ async function initializeMapAndLocator() {
         interactive: false
     }).addTo(map);
   }
-  }else{
-    map.eachLayer(layer => {
-      map.removeLayer(layer);
-    });
+
+  function isInsideEllipse(point, center, semiMajorAxis, semiMinorAxis, angle) {
+    const dx = point[0] - center[0];
+    const dy = point[1] - center[1];
+    const angleRad = angle * Math.PI / 180;
+    const cosAngle = Math.cos(angleRad);
+    const sinAngle = Math.sin(angleRad);
+    const rotatedDx = cosAngle * dx - sinAngle * dy;
+    const rotatedDy = sinAngle * dx + cosAngle * dy;
+
+    return (rotatedDx * rotatedDx) / (semiMajorAxis*(0.0001) * semiMajorAxis*(0.0001)) + (rotatedDy * rotatedDy) / (semiMinorAxis *(0.0001)* semiMinorAxis*(0.0001)) <= 1;
   }
-
-
-    function isInsideEllipse(point, center, semiMajorAxis, semiMinorAxis, angle) {
-      const dx = point[0] - center[0];
-      const dy = point[1] - center[1];
-      const angleRad = angle * Math.PI / 180;
-      const cosAngle = Math.cos(angleRad);
-      const sinAngle = Math.sin(angleRad);
-      const rotatedDx = cosAngle * dx - sinAngle * dy;
-      const rotatedDy = sinAngle * dx + cosAngle * dy;
-
-      return (rotatedDx * rotatedDx) / (semiMajorAxis*(0.0001) * semiMajorAxis*(0.0001)) + (rotatedDy * rotatedDy) / (semiMinorAxis *(0.0001)* semiMinorAxis*(0.0001)) <= 1;
-    }
 
 
 
@@ -149,8 +165,11 @@ async function initializeMapAndLocator() {
           clearInterval(lineDrawingInterval);
           if(currentEllipse){
             currentEllipse.remove();
-          }                                                       //Por ahora el centro de la elipse es el propio barco
-          drawEllipse(map,[boatCoordinates[0],boatCoordinates[1]] ,[boatCoordinates[0],boatCoordinates[1]],113.5624900059602,127.04089357908843,-135.35846661098765);
+          }  
+          let semiMajorAxis=113.5624900059602;
+          let semiMinorAxis=127.04089357908843;
+          let angle  =-135.35846661098765;                                                  //Por ahora el centro de la elipse es el propio barco
+          drawEllipse(map,[boatCoordinates[0],boatCoordinates[1]] ,[boatCoordinates[0],boatCoordinates[1]],semiMajorAxis,semiMinorAxis,angle);
         }
       }, 50);
       
@@ -165,7 +184,14 @@ async function initializeMapAndLocator() {
 function drawAreas() {
     Areas.forEach(area => {
         const coordinates = area.coordinates[0].map(coord => [coord[0], coord[1]]);
-        L.polygon(coordinates, { color: 'red' }).addTo(map);
+        const polygon = L.polygon(coordinates, { color: 'red' }).addTo(map);
+        
+        polygon.on('click', function (e) {
+            L.popup()
+                .setLatLng(e.latlng)
+                .setContent(area.name)
+                .openOn(map);
+        });
     });
 }
 
@@ -185,5 +211,18 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+.popup-content {
+    max-width: 200px; /* Ancho máximo del popup */
+    padding: 10px; /* Espaciado interior del popup */
+    background-color: #ffffff; /* Color de fondo del popup */
+    border: 1px solid #ccc; /* Borde del popup */
+    border-radius: 5px; /* Radio de borde del popup */
+    font-family: Arial, sans-serif; /* Fuente del texto del popup */
+    font-size: 14px; /* Tamaño de fuente del texto del popup */
+}
+.boat-name {
+    font-weight: bold; /* Texto en negrita */
+    font-size: 16px; /* Tamaño de fuente más grande */
 }
 </style>
