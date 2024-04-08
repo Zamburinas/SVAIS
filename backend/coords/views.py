@@ -49,7 +49,7 @@ def coords(request):
 def get_route(request):
     if request.method == 'POST':
         body = json.loads(request.body)
-        min_distance = 0.0001
+        min_distance = 0.001
         db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
 
         pipeline = [
@@ -75,63 +75,61 @@ def get_route(request):
         ]
         
         resultado = list(db[Database.COORDS.value].aggregate(pipeline))
-        filtered_result = [resultado[0]]
-        for i in range(1, len(resultado)):
-            lat_diff = abs(resultado[i]["LAT"] - filtered_result[-1]["LAT"])
-            lon_diff = abs(resultado[i]["LON"] - filtered_result[-1]["LON"])
-            if lat_diff > min_distance or lon_diff > min_distance:
-                filtered_result.append(resultado[i])
-                
-        for i in range(1, len(resultado)):
-            # Convertir las cadenas de fecha y hora en objetos datetime
-            datetime1 = datetime.strptime(resultado[i - 1]["BaseDateTime"], "%Y-%m-%dT%H:%M:%S")
-            datetime2 = datetime.strptime(resultado[i]["BaseDateTime"], "%Y-%m-%dT%H:%M:%S")
-            
-            # Calcular la diferencia de tiempo entre los puntos
-            time_diff = (datetime2 - datetime1).total_seconds() / 3600  # Convertir a horas
-            
-            # Calcular la velocidad utilizando la distancia y el tiempo
-            # (aquí puedes usar la fórmula de distancia entre dos puntos en la superficie de la Tierra)
-            lat1 = math.radians(resultado[i - 1]["LAT"])
-            lon1 = math.radians(resultado[i - 1]["LON"])
-            lat2 = math.radians(resultado[i]["LAT"])
-            lon2 = math.radians(resultado[i]["LON"])
-            
-            # Calcular la distancia utilizando la función corregida
-            distance = calculate_distance(lat1, lon1, lat2, lon2)
-            speed = distance / time_diff if time_diff != 0 else 0
-            
-            # Comparar la velocidad calculada con la velocidad proporcionada en el campo SOG
-            sog = resultado[i]["SOG"]
-            print(f"Velocidad calculada: {speed} nudos, SOG: {sog} nudos")
-            if(speed>200):
-                print(resultado[i])
+
+        filtered_result=filtrar_coordenadas(resultado, min_distance)
         
-        return JsonResponse({"route": [(doc["LAT"], doc["LON"]) for doc in filtered_result]})
+        return JsonResponse({"route": [(doc["LAT"], doc["LON"],doc["BaseDateTime"],doc["SOG"]) for doc in filtered_result]})
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
 
-def calculate_distance(lat1, lon1, lat2, lon2):
-    # Convertir grados decimales a radianes
-    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
-    
-    # Radio de la Tierra en kilómetros
-    R = 6371.0
-    
-    # Diferencia de latitud y longitud
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    
-    # Fórmula de Haversine
-    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    
-    # Distancia entre los dos puntos
-    distance = R * c
-    
-    return distance
+
+def filtrar_coordenadas(resultado, min_distance):
+    if min_distance == 0 or len(resultado) < 2:
+        # Si la distancia mínima es cero o solo hay un punto, devolver solo la última posición
+        return [resultado[-1]]
+
+    filtered_result = []
+    movimiento_iniciado = False
+    puntos_en_movimiento = []
+
+    for i in range(1, len(resultado)):
+        lat_diff = abs(resultado[i]["LAT"] - resultado[i-1]["LAT"])
+        lon_diff = abs(resultado[i]["LON"] - resultado[i-1]["LON"])
+
+        if lat_diff > min_distance or lon_diff > min_distance:
+            if movimiento_iniciado:
+                puntos_en_movimiento.append(resultado[i])
+            else:
+                # Guardar el primer punto de cuando estuvo parado
+                primer_punto_parado = resultado[i-1]
+                movimiento_iniciado = True
+                puntos_en_movimiento.append(resultado[i-1])  # Agregar el último punto parado
+                puntos_en_movimiento.append(resultado[i])  # Agregar el primer punto en movimiento
+        else:
+            if movimiento_iniciado:
+                # Guardar el último punto que estuvo parado
+                ultimo_punto_parado = resultado[i-1]
+                movimiento_iniciado = False
+                filtered_result.append(primer_punto_parado)
+                filtered_result.extend(puntos_en_movimiento)
+                filtered_result.append(ultimo_punto_parado)
+                puntos_en_movimiento = []  # Reiniciar lista de puntos en movimiento
+
+    # Si la trayectoria termina con movimiento, agregar el último punto
+    if movimiento_iniciado:
+        filtered_result.append(primer_punto_parado)
+        filtered_result.extend(puntos_en_movimiento)
+        filtered_result.append(resultado[-1])
+
+    # Si no hay cambios significativos en la posición del vehículo, agregar la última posición
+    if not filtered_result:
+        filtered_result.append(resultado[-1])
+
+    print(len(filtered_result))
+    return filtered_result
+
 
 
 def boat_info(request):

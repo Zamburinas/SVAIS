@@ -1,5 +1,6 @@
 <template>
   <q-page>
+    <div id="alertBox" class="alert-box"></div>
     <div id="map"></div>
 
     <!-- Botón para abrir el menú desplegable -->
@@ -42,6 +43,8 @@ let pointMarkers = new Map();
 let map = null; // Variable para almacenar la instancia del mapa
 let boats = ref([]); // Variable para almacenar los datos de los barcos
 let filteredBoats = ref([]); // Variable para almacenar los barcos filtrados
+let alertCount = 0;
+const showAlerts = ref(false);
 
 async function initializeMapAndLocator() {
   map = L.map('map').setView([37.0902, -95.7129], 4);
@@ -65,10 +68,35 @@ async function initializeMapAndLocator() {
   filteredBoats.value = boats.value;
 }
 
+
 async function handleBoatSelection(boat) {
   if (boat.checked) {
     try {
       const coords = await helpers.getBoatRoute({ "MMSI": boat.MMSI });
+
+      for (let i = 1; i < coords.route.length; i++) {
+        const [lat1, lon1, time1, sog1] = coords.route[i - 1];
+        const [lat2, lon2, time2, sog2] = coords.route[i];
+
+        // Calcular la distancia entre dos puntos consecutivos en kilómetros usando la fórmula de Haversine
+        const distance = haversineDistance(lat1, lon1, lat2, lon2);
+
+        // Calcular el tiempo transcurrido entre dos puntos consecutivos en horas
+        const timeDiff = (new Date(time2) - new Date(time1)) / (1000 * 3600); // Diferencia de tiempo en horas
+
+        // Calcular la velocidad en kilómetros por hora
+        const speedKmh = distance / timeDiff;
+        const speedKnots = speedKmh * 0.53996;
+        // Comparar la velocidad calculada con el campo SOG
+        if (speedKnots > sog1) {
+          alertCount++;
+        }
+       
+      }
+      if(alertCount!=0){
+        showAlert("Hay un total de "+alertCount+" tramos sospechosos");
+      }
+      
 
       // Create boat icon
       const boatIcon = L.icon({
@@ -77,30 +105,39 @@ async function handleBoatSelection(boat) {
         iconAnchor: [16, 16],
       });
 
-      // Create and add boat marker to map
-      const boatMarker = L.marker(coords.route[coords.route.length - 1], { icon: boatIcon }).addTo(map);
-      markers.set(boat, boatMarker); // Associate the marker with the boat on the map
+              // Create and add boat marker to map
+        const lastCoordsIndex = coords.route.length - 1;
+        const lastCoords = coords.route[lastCoordsIndex];
+        const boatMarker = L.marker([lastCoords[0], lastCoords[1]], { icon: boatIcon }).addTo(map);
+        markers.set(boat, boatMarker); // Asociar el marcador con el barco en el mapa
 
-      // Create and add boat route to map
-      const boatRoute = L.polyline(coords.route, { color: randomColor(usedColors), weight: 5 }).addTo(map);
-      routes.set(boat, boatRoute); // Associate the route with the boat on the map
+        // Create and add boat route to map
+        const routeCoords = coords.route.map(coord => [coord[0], coord[1]]); // Extraer solo las coordenadas
+        const boatRoute = L.polyline(routeCoords, { color: randomColor(usedColors), weight: 5 }).addTo(map);
+        routes.set(boat, boatRoute); // Asociar la ruta con el barco en el mapa
 
-      // Add click event to boat route to show popup
-      boatRoute.on('click', function (e) {
-        L.popup()
-          .setLatLng(e.latlng)
-          .setContent('Here we can put information about the average and maximum speed for now')
-          .openOn(map);
-      });
+        // Add click event to boat route to show popup
+        boatRoute.on('click', function (e) {
+          L.popup()
+            .setLatLng(e.latlng)
+            .setContent('Aquí podemos poner información sobre la velocidad promedio y máxima por ahora')
+            .openOn(map);
+        });
 
-      // Create markers for all points in the route except the last one
-      const PointIcon = L.icon({
-        iconUrl: 'src/assets/point.png',
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
-      });
-      const pointMarkersArray = coords.route.slice(0, -1).map(coord => L.marker(coord, { icon: PointIcon }).addTo(map));
-      pointMarkers.set(boat, pointMarkersArray);
+        // Create markers for all points in the route except the last one
+        const PointIcon = L.icon({
+          iconUrl: 'src/assets/point.png',
+          iconSize: [16, 16],
+          iconAnchor: [8, 8],
+        });
+        const pointMarkersArray = [];
+        for (let i = 0; i < lastCoordsIndex; i++) {
+          const coord = coords.route[i];
+          const marker = L.marker([coord[0], coord[1]], { icon: PointIcon }).addTo(map);
+          pointMarkersArray.push(marker);
+        }
+        pointMarkers.set(boat, pointMarkersArray);
+
     } catch (error) {
       console.error('Error fetching boat route:', error);
     }
@@ -108,6 +145,42 @@ async function handleBoatSelection(boat) {
     removeBoat(boat);
   }
 }
+
+
+
+function showAlert(message) {
+  // Obtener el elemento del div de alerta
+  const alertBox = document.getElementById('alertBox');
+
+  // Establecer el mensaje de alerta en el contenido del div
+  alertBox.textContent = message;
+
+  // Mostrar el div de alerta
+  alertBox.style.display = 'block';
+
+  // Después de un tiempo, ocultar el div de alerta
+  setTimeout(() => {
+    alertBox.style.display = 'none';
+  }, 5000); // Ocultar la alerta después de 5 segundos (5000 milisegundos)
+
+  // Decrementar el contador de alertas y actualizar el botón
+  alertCount=0;
+}
+
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radio de la Tierra en kilómetros
+  const dLat = (lat2 - lat1) * Math.PI / 180;  // Convertir a radianes
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c; // Distancia en kilómetros
+  return distance;
+}
+
+
 
 function removeBoat(boat) {
   // Remove boat marker, route, and point markers associated with the deselected boat
@@ -185,5 +258,21 @@ onMounted(() => {
 .selected {
   background-color: #9ecfff !important;
 }
+
+.alert-box {
+  display: none;
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #f44336;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  z-index: 9999;
+}
+
+
+
 </style>
 cd b
