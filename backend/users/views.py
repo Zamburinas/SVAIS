@@ -1,7 +1,7 @@
 # myapp/views.py
 import json
 import re
-import face_recognition
+# import face_recognition
 import base64
 import numpy as np
 import os
@@ -31,18 +31,18 @@ def login(request):
             return JsonResponse({"msg": "Email or password not valid"}, status=400)
 
         user_data = _get_credentials(email)
-        if user_data["two_factor_auth"]:
-            if tfa is None:
-                return JsonResponse(
-                    {"msg": "Two Factor Authentication required", "tfa": True},
-                    status=400,
-                )
+        # if user_data["two_factor_auth"]:
+        #     if tfa is None:
+        #         return JsonResponse(
+        #             {"msg": "Two Factor Authentication required", "tfa": True},
+        #             status=400,
+        #         )
 
-            if not _two_factor_auth(email, tfa):
-                return JsonResponse(
-                    {"msg": "Two Factor Authentication doesn't match", "tfa": True},
-                    status=400,
-                )
+        #     if not _two_factor_auth(email, tfa):
+        #         return JsonResponse(
+        #             {"msg": "Two Factor Authentication doesn't match", "tfa": True},
+        #             status=400,
+        #         )
 
         token = Authenticate.encode_auth_token(email, minutes=60)
         return JsonResponse(

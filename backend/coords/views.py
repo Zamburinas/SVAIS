@@ -4,7 +4,7 @@ from pymongo import MongoClient
 from config import *
 from scipy.stats import chi2
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import math
 # Create your views here.
 
@@ -49,7 +49,7 @@ def coords(request):
 def get_route(request):
     if request.method == 'POST':
         body = json.loads(request.body)
-        min_distance = 0.001
+        min_distance = 0.0005
         db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
 
         pipeline = [
@@ -77,10 +77,50 @@ def get_route(request):
         resultado = list(db[Database.COORDS.value].aggregate(pipeline))
 
         filtered_result=filtrar_coordenadas(resultado, min_distance)
-        
-        return JsonResponse({"route": [(doc["LAT"], doc["LON"],doc["BaseDateTime"],doc["SOG"]) for doc in filtered_result]})
+
+        final_routes= detect_new_routes(filtered_result)
+
+        response_data = []
+
+        for route in final_routes:
+            route_data = [(doc["LAT"], doc["LON"], doc["BaseDateTime"], doc["SOG"]) for doc in route]
+            response_data.append({"route": route_data})
+
+        return JsonResponse(response_data, safe=False)
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+
+
+
+
+def detect_new_routes(resultado):
+    routes = []
+    current_route = []
+
+    for i in range(len(resultado)):
+        tiempo_actual = datetime.strptime(resultado[i]["BaseDateTime"], "%Y-%m-%dT%H:%M:%S")
+
+        if i > 0:
+            tiempo_anterior = datetime.strptime(resultado[i-1]["BaseDateTime"], "%Y-%m-%dT%H:%M:%S")
+            tiempo_diff = tiempo_actual - tiempo_anterior
+        else:
+            tiempo_diff = timedelta(minutes=0)
+        
+        if tiempo_diff > timedelta(minutes=60):
+            if current_route:
+                routes.append(current_route)
+                current_route = [current_route[-1]]  # Comenzar la nueva ruta con el último punto de la ruta anterior
+
+        current_route.append(resultado[i])
+
+    if current_route:
+        routes.append(current_route)
+
+    return routes
+
+
 
 
 
@@ -127,7 +167,6 @@ def filtrar_coordenadas(resultado, min_distance):
     if not filtered_result:
         filtered_result.append(resultado[-1])
 
-    print(len(filtered_result))
     return filtered_result
 
 

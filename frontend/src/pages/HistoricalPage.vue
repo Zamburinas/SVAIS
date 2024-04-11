@@ -44,7 +44,20 @@ let map = null; // Variable para almacenar la instancia del mapa
 let boats = ref([]); // Variable para almacenar los datos de los barcos
 let filteredBoats = ref([]); // Variable para almacenar los barcos filtrados
 let alertCount = 0;
-const showAlerts = ref(false);
+
+const PointIcon = L.icon({
+  iconUrl: 'src/assets/point.png',
+  iconSize: [12, 12],
+  iconAnchor: [8, 8],
+});
+
+const boatIcon = L.icon({
+  iconUrl: 'src/assets/cruise_colored-icon.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+});
+
+
 
 async function initializeMapAndLocator() {
   map = L.map('map').setView([37.0902, -95.7129], 4);
@@ -62,61 +75,53 @@ async function initializeMapAndLocator() {
     MMSI: coord.MMSI,
     name: coord.VesselName,
     photo: "src/assets/cruise_colored-icon.png",
-    checked: false,
-    route: [] // Puedes agregar la ruta si también está disponible en coords
+    checked: false
   }));
   filteredBoats.value = boats.value;
 }
 
 
+
+
 async function handleBoatSelection(boat) {
   if (boat.checked) {
     try {
-      const coords = await helpers.getBoatRoute({ "MMSI": boat.MMSI });
+      const response = await helpers.getBoatRoute({ "MMSI": boat.MMSI });
 
-      for (let i = 1; i < coords.route.length; i++) {
-        const [lat1, lon1, time1, sog1] = coords.route[i - 1];
-        const [lat2, lon2, time2, sog2] = coords.route[i];
+      let alertCount = 0; // Contador de alertas
 
-        // Calcular la distancia entre dos puntos consecutivos en kilómetros usando la fórmula de Haversine
-        const distance = haversineDistance(lat1, lon1, lat2, lon2);
+      const routeSegments = []; // Almacenar segmentos de la ruta con problemas
 
-        // Calcular el tiempo transcurrido entre dos puntos consecutivos en horas
-        const timeDiff = (new Date(time2) - new Date(time1)) / (1000 * 3600); // Diferencia de tiempo en horas
+      let lastCoords; // Últimas coordenadas de la última ruta
+      let pointMarkersArray = [];
+      let routesArray=[];
+      response.forEach((routeData,index) => {
+        let routeColor = randomColor(usedColors);
+        for (let i = 1; i < routeData.route.length; i++) {
+          const [lat1, lon1, time1, sog1] = routeData.route[i - 1];
+          const [lat2, lon2, time2, sog2] = routeData.route[i];
+          
+          const speedKnots=calcularDistancia(lat1, lon1, lat2, lon2,time1,time2);
 
-        // Calcular la velocidad en kilómetros por hora
-        const speedKmh = distance / timeDiff;
-        const speedKnots = speedKmh * 0.53996;
-        // Comparar la velocidad calculada con el campo SOG
-        if (speedKnots > sog1) {
-          alertCount++;
+
+          if (speedKnots > sog2 * 2) {
+            alertCount++;
+            routeSegments.push([lat1, lon1, lat2, lon2]); // Almacenar segmento sospechoso
+          }
         }
-       
-      }
-      if(alertCount!=0){
-        showAlert("Hay un total de "+alertCount+" tramos sospechosos");
-      }
-      
 
-      // Create boat icon
-      const boatIcon = L.icon({
-        iconUrl: 'src/assets/cruise_colored-icon.png',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-      });
+        let primerosDosElementos = [];
+        routeData.route.forEach(array => {
+          // Obtener los dos primeros elementos y agregarlos al nuevo array
+          primerosDosElementos.push(array.slice(0, 2));
+        });
 
-              // Create and add boat marker to map
-        const lastCoordsIndex = coords.route.length - 1;
-        const lastCoords = coords.route[lastCoordsIndex];
-        const boatMarker = L.marker([lastCoords[0], lastCoords[1]], { icon: boatIcon }).addTo(map);
-        markers.set(boat, boatMarker); // Asociar el marcador con el barco en el mapa
+        // Crear y agregar ruta del barco al mapa
+        const boatRoute = L.polyline(primerosDosElementos, { color: routeColor, weight: 5 }).addTo(map);
+        routesArray.push(boatRoute);
+        
 
-        // Create and add boat route to map
-        const routeCoords = coords.route.map(coord => [coord[0], coord[1]]); // Extraer solo las coordenadas
-        const boatRoute = L.polyline(routeCoords, { color: randomColor(usedColors), weight: 5 }).addTo(map);
-        routes.set(boat, boatRoute); // Asociar la ruta con el barco en el mapa
-
-        // Add click event to boat route to show popup
+        // Agregar evento de clic a la ruta del barco para mostrar un popup
         boatRoute.on('click', function (e) {
           L.popup()
             .setLatLng(e.latlng)
@@ -124,19 +129,53 @@ async function handleBoatSelection(boat) {
             .openOn(map);
         });
 
-        // Create markers for all points in the route except the last one
-        const PointIcon = L.icon({
-          iconUrl: 'src/assets/point.png',
-          iconSize: [16, 16],
-          iconAnchor: [8, 8],
-        });
-        const pointMarkersArray = [];
-        for (let i = 0; i < lastCoordsIndex; i++) {
-          const coord = coords.route[i];
+        if (index === response.length - 1) {
+          // Si es la última ruta, obtener las últimas coordenadas
+          lastCoords = routeData.route[routeData.route.length - 1];
+        }
+
+
+        if (routeSegments.length > 0) {
+          // Si hay segmentos sospechosos, cambiar su color a rojo y marcarlos en el mapa
+          routeSegments.forEach(segment => {
+            const [lat1, lon1, lat2, lon2] = segment;
+            const redRouteSegment = L.polyline([[lat1, lon1], [lat2, lon2]], { color: '#FF0000', weight: 5 }).addTo(map);
+            routesArray.push(redRouteSegment);
+
+          });
+        }
+
+
+        let indexPoint=0;
+        if(index==response.lenth){
+          indexPoint=routeData.route.length -1
+        }else{
+          indexPoint=routeData.route.length
+        }
+
+        
+        for (let i = 0; i <indexPoint ; i++) {
+          const coord = routeData.route[i];
           const marker = L.marker([coord[0], coord[1]], { icon: PointIcon }).addTo(map);
           pointMarkersArray.push(marker);
         }
-        pointMarkers.set(boat, pointMarkersArray);
+        
+      });
+      routes.set(boat,routesArray);
+      pointMarkers.set(boat, pointMarkersArray);
+
+      if (alertCount !== 0) {
+        showAlert("There are a total of " + alertCount + " suspicious segments", true);
+      } else {
+        showAlert("Correct route", false);
+      }
+
+
+      // Colocar el icono del barco en el último punto de la última ruta
+      if (lastCoords) {
+        const boatMarker = L.marker([lastCoords[0], lastCoords[1]], { icon: boatIcon }).addTo(map);
+        markers.set(boat, boatMarker); // Asociar el marcador con el barco en el mapa
+      }
 
     } catch (error) {
       console.error('Error fetching boat route:', error);
@@ -147,13 +186,28 @@ async function handleBoatSelection(boat) {
 }
 
 
+function calcularDistancia(lat1, lon1, lat2, lon2,time1,time2){
+  const distance = haversineDistance(lat1, lon1, lat2, lon2);
+  const timeDiff = (new Date(time2) - new Date(time1)) / (1000 * 3600);
+  const speedKmh = distance / timeDiff;
+  const speedKnots = speedKmh * 0.53996;
+  return speedKnots;
+}
 
-function showAlert(message) {
+function showAlert(message,color) {
   // Obtener el elemento del div de alerta
   const alertBox = document.getElementById('alertBox');
 
   // Establecer el mensaje de alerta en el contenido del div
   alertBox.textContent = message;
+
+  // Establecer el estilo CSS para el fondo rojo+
+  if (color){
+    alertBox.style.backgroundColor = '#f44336';
+  }else{
+    alertBox.style.backgroundColor = '#4CAF50'; 
+  }
+  
 
   // Mostrar el div de alerta
   alertBox.style.display = 'block';
@@ -166,7 +220,6 @@ function showAlert(message) {
   // Decrementar el contador de alertas y actualizar el botón
   alertCount=0;
 }
-
 
 function haversineDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // Radio de la Tierra en kilómetros
@@ -185,8 +238,9 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 function removeBoat(boat) {
   // Remove boat marker, route, and point markers associated with the deselected boat
   removeMarker(markers.get(boat));
-  removeRoute(routes.get(boat));
-  removePointMarkers(pointMarkers.get(boat));
+  removeRoutes(boat);
+  
+  removePointMarkers(boat);
 
   // Remove boat from maps
   markers.delete(boat);
@@ -200,15 +254,24 @@ function removeMarker(marker) {
   }
 }
 
-function removeRoute(route) {
-  if (route) {
-    map.removeLayer(route);
+function removePointMarkers(boat) {
+  const pointMarkersArray = pointMarkers.get(boat);
+  if (pointMarkersArray && pointMarkersArray.length > 0) {
+    pointMarkersArray.forEach(marker => {
+      map.removeLayer(marker);
+    });
+    pointMarkers.set(boat, []);
   }
+  
 }
 
-function removePointMarkers(pointMarkersArray) {
-  if (pointMarkersArray) {
-    pointMarkersArray.forEach(marker => map.removeLayer(marker));
+function removeRoutes(boat) {
+  const routeArray = routes.get(boat);
+  if (routeArray && routeArray.length > 0) {
+    routeArray.forEach(marker => {
+      map.removeLayer(marker);
+    });
+    routes.set(boat, []);
   }
 }
 
@@ -222,7 +285,7 @@ function randomColor(usedColors) {
   let color;
   do {
     color = '#' + Math.floor(Math.random() * 16777215).toString(16);
-  } while (usedColors.has(color));
+  } while (usedColors.has(color) || color.startsWith('#FF'));
   return color;
 }
 
@@ -265,7 +328,6 @@ onMounted(() => {
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #f44336;
   color: white;
   padding: 10px 20px;
   border-radius: 5px;
@@ -275,4 +337,3 @@ onMounted(() => {
 
 
 </style>
-cd b

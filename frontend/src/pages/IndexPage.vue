@@ -25,7 +25,6 @@ async function initializeMapAndLocator() {
     boats =JSON.parse(coords.boats);
   }
   Areas = await helpers.getProtectedAreas();
-  console.log(Areas[0].name);
       
   map= L.map('map').setView([37.0902, -95.7129], 5);
 
