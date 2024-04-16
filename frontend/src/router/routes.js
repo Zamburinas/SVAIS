@@ -59,6 +59,25 @@ const routes = [
     }
   },
   {
+    path: '/trainees',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { 
+        path: '', 
+        component: () => import('pages/TraineesPage.vue'),
+        name: 'trainees'
+      }
+    ],
+    beforeEnter: async (to, from, next) => {
+      const token = await helpers.checkToken();
+      if (!token) {
+        next({ name: 'login' });
+      } else {
+        next();
+      }
+    }
+  },
+  {
     path: '/register',
     component: () => import('layouts/MainLayout.vue'),
     children: [

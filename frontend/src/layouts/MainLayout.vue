@@ -131,6 +131,12 @@ const loginList = [
     icon: 'list',
     page: '/historical',
     size: 'sm'
+  },
+  {
+    title: 'Trainees',
+    icon: 'example',
+    page: '/trainees',
+    size: 'sm'
   }
 ]
 
