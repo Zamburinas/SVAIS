@@ -137,8 +137,8 @@ export async function getAllCoords() {
     })
 }
 
-export async function getBoatInfo() {
-  return await fetch(`http://${url}:${port}/coords/boat_info`, {
+export async function getBoatNames() {
+  return await fetch(`http://${url}:${port}/coords/boat_names`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json"
@@ -166,6 +166,38 @@ export async function getBoatRoute(boatName) {
       return response.json();
     })
 }
+
+export async function getBoatInfo(boatName) {
+  return await fetch(`http://${url}:${port}/coords/boatInfo`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    }, body: JSON.stringify(boatName),
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+}
+
+export async function getBoats(boatName) {
+  return await fetch(`http://${url}:${port}/coords/boat_names`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    }, body: JSON.stringify(boatName),
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+}
+
+
 
 export async function getProtectedAreas() {
   return await fetch(`http://${url}:${port}/coords/getProtectedAreas`, {

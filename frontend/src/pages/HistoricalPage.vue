@@ -9,6 +9,9 @@
         <div class="q-pa-md">
           <q-input outlined v-model="searchQuery" @keyup="search" placeholder="Search boats...">
           </q-input>
+          <!-- Agregar el q-select con las opciones desplegables -->
+          <!-- <q-select v-model="selectedOption" :options="selectOptions">
+          </q-select> -->
         </div>
         <q-virtual-scroll :items="filteredBoats" item-height="50">
           <template v-slot="{ item }">
@@ -34,6 +37,7 @@ import { onMounted, ref } from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { inject } from 'vue';
+// let selectedOption = ref('Nombre');
 let searchQuery = "";
 let markers = new Map(); // Usamos un Map para almacenar los marcadores de barcos
 let routes = new Map(); // Mapa para almacenar las rutas de los barcos
@@ -44,6 +48,13 @@ let map = null; // Variable para almacenar la instancia del mapa
 let boats = ref([]); // Variable para almacenar los datos de los barcos
 let filteredBoats = ref([]); // Variable para almacenar los barcos filtrados
 let alertCount = 0;
+
+// const selectOptions = [
+//   { label: 'Nombre', value: 'VesselName' },
+//   { label: 'MMSI', value: 'MMSI' },
+//   { label: 'Tipo de Vessel', value: 'VesselName' },
+//   { label: 'Estado', value: 'Status' }
+// ];
 
 const PointIcon = L.icon({
   iconUrl: 'src/assets/point.png',
@@ -69,7 +80,7 @@ async function initializeMapAndLocator() {
     accessToken: 'pk.eyJ1IjoiYm9id2F0Y2hlcngiLCJhIjoiY2xiMGwwZThrMWg3aTNwcW1mOGRucHh6bSJ9.kNHlmRqkRSxYNeipcKkJhw',
   }).addTo(map);
 
-  let coords = JSON.parse(await helpers.getBoatInfo());
+  let coords = JSON.parse(await helpers.getBoatNames());
   // Asignar los datos de los barcos a la variable boats
   boats.value = coords.map(coord => ({
     MMSI: coord.MMSI,
@@ -289,8 +300,17 @@ function randomColor(usedColors) {
   return color;
 }
 
-function search() {
-  // Filtrar los barcos que coincidan con la consulta de búsqueda
+async function search() {
+  // if (selectedOption.value=='Name'){
+  //   const option= "VesselName";
+  // }else{
+  //   const option= selectedOption.value.value
+  // }
+  
+
+  // // Filtrar los barcos que coincidan con la consulta de búsqueda
+  // let prueba= await helpers.getBoats({option:searchQuery.toLowerCase()});
+  // console.log(prueba);
   filteredBoats.value = boats.value.filter(boat => {
     return boat.name.toLowerCase().includes(searchQuery.toLowerCase());
   });

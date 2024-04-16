@@ -52,28 +52,14 @@ async function initializeMapAndLocator() {
   });
 
   drawAreas();
-
+  
   boats.forEach(boat => {
-    const marker = L.marker([boat.data.LAT,boat.data.LON], { icon: boatIcon }).addTo(map);
-    const date = new Date(boat.data.BaseDateTime);
-    const formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
-    const formattedTime = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
 
-    var popupContent = `<div class="popup-content">
-                              <span class="label">Boat Name:</span> <span class="boat-name">${boat.data.VesselName}</span><br>
-                              <span class="label">Vessel Type:</span> <span class="vessel-type">${boat.data.VesselType}</span><br>
-                              <span class="label">MMSI:</span> <span class="mmsi">${boat.data.MMSI}</span><br>
-                              <span class="label">Date:</span> <span class="date">${formattedDate}</span><br>
-                              <span class="label">Time:</span> <span class="time">${formattedTime}</span><br>
-                              <span class="label">Status:</span> <span class="status">${boat.data.Status}</span><br>
-                              <span class="label">Latitude:</span> <span class="latitude">${boat.data.LAT}</span><br>
-                              <span class="label">Longitude:</span> <span class="longitude">${boat.data.LON}</span><br>
-                            </div>`;
+    
+    
+    const marker = L.marker([boat.LAT,boat.LON], { icon: boatIcon }).addTo(map);
 
-
-
-    marker.bindPopup(popupContent);
-    marker.on('click', () => {
+    marker.on('click', async() => {
       if (currentEllipse) {
         currentEllipse.remove();
         linesGroup.clearLayers();
@@ -85,8 +71,28 @@ async function initializeMapAndLocator() {
         });
         currentLines = [];
       }
-      
-      drawLinesWithAnimation(map, [boat.data.LAT,boat.data.LON], coorGoniometros.map(antenna => antenna));
+      let aux= await helpers.getBoatInfo(boat.MMSI);
+      console.log(aux.data.LON)
+      const date = new Date(aux.data.BaseDateTime);
+      const formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+      const formattedTime = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+
+      var popupContent = `<div class="popup-content">
+                                <span class="label">Nombre:</span> <span class="boat-name">${aux.data.VesselName}</span><br>
+                                <span class="label">Vessel Type:</span> <span class="vessel-type">${aux.data.VesselType}</span><br>
+                                <span class="label">MMSI:</span> <span class="mmsi">${aux.data.MMSI}</span><br>
+                                <span class="label">Fecha:</span> <span class="date">${formattedDate}</span><br>
+                                <span class="label">Hora:</span> <span class="time">${formattedTime}</span><br>
+                                <span class="label">Estado:</span> <span class="status">${aux.data.Status}</span><br>
+                                <span class="label">Latitud:</span> <span class="latitude">${aux.data.LAT}</span><br>
+                                <span class="label">Longitud:</span> <span class="longitude">${aux.data.LON}</span><br>
+                              </div>`;
+
+
+
+      var popup = L.popup().setContent(popupContent);
+      marker.bindPopup(popup).openPopup();
+      drawLinesWithAnimation(map, [boat.LAT,boat.LON], coorGoniometros.map(antenna => antenna));
     });
   });
 
@@ -103,6 +109,7 @@ async function initializeMapAndLocator() {
       map.removeLayer(layer);
     });
   }
+
 
 
   function drawEllipse(map, boat,center, semiMajorAxis, semiMinorAxis, angle) {

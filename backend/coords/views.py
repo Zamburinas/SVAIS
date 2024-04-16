@@ -20,7 +20,9 @@ def coords(request):
             {
                 '$group': {
                     '_id': '$MMSI',
-                    'data': {'$first': '$$ROOT'}  # Tomar el primer documento después de ordenar
+                    'MMSI': {'$first': '$MMSI'}, 
+                    'LAT': {'$first': '$LAT'}, 
+                    'LON': {'$first': '$LON'} 
                 }
             }
         ]
@@ -29,7 +31,6 @@ def coords(request):
         
         for item in resultados:
             item['_id'] = str(item['_id'])
-            item['data']['_id'] = str(item['data']['_id'])
 
         radiogonos=[
             (43.6728903,-7.8391903) ,
@@ -171,7 +172,7 @@ def filtrar_coordenadas(resultado, min_distance):
 
 
 
-def boat_info(request):
+def boat_names(request):
     if request.method == 'GET':
         
         #Aquí consultar base de datos para que devuelva información de los datos, como el nombre y el MMSI
@@ -196,12 +197,75 @@ def boat_info(request):
         resultados = list(db[Database.COORDS.value].aggregate(pipeline))
 
         return JsonResponse(json.dumps(resultados), safe=False)
+    if request.method == 'POST': 
+        db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
+        body = json.loads(request.body)
+        pipeline = []
+        project_stage = {"$project": {"_id": 0, "VesselName": 1}}
+
+        if "MMSI" in body:
+            match_stage = {"$match": {"MMSI": body["MMSI"]}}
+            group_stage = {"$group": {"_id": "$MMSI", "VesselName": {"$first": "$VesselName"}}}
+            project_stage["$project"]["MMSI"] = "$_id"
+            pipeline.extend([match_stage, group_stage])
+
+
+        resultados = list(db[Database.COORDS.value].aggregate(pipeline))
+        print(len(resultados))
+        return JsonResponse(json.dumps(resultados), safe=False)
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
 
 
+def getBoatInfo(request):
+    if request.method == 'POST': 
+        body = json.loads(request.body)
+        db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
+        pipeline = [
+            {
+                '$match': {'MMSI': body}  # Filtrar por el MMSI concreto
+            },
+            {
+                '$sort': {'BaseDateTime': -1}  # Ordenar por BaseDateTime en orden descendente
+            },
+            {
+                '$group': {
+                    '_id': '$MMSI',
+                    'data': {'$first': '$$ROOT'}  # Tomar el primer documento después de ordenar
+                }
+            }
+        ]
+        resultados = list(db[Database.COORDS.value].aggregate(pipeline))
+        status= int(resultados[0]['data']['Status'])
+        VesselType= str(int(resultados[0]['data']['VesselType']))
+        pipeline = [
+            {
+                '$match': {'status': status}  # Filtrar por el valor específico del campo 'status'
+            }
+        ]
+        Status_aux= list(db[Database.STATUS.value].aggregate(pipeline))
+        resultados[0]['data']['Status']= Status_aux[0]['description']
+        pipeline = [
+            {
+                '$match': {'vesselType': VesselType}  
+            }
+        ]
+       
+        VesselType_aux= list(db[Database.VESSELTYPE.value].aggregate(pipeline))
+        
+        resultados[0]['data']['VesselType']= VesselType_aux[0]['description']
+
+        for area in resultados:
+            del area['_id']
+            del area['data']['_id']
+
+
+        item = str(resultados[0])
+        return JsonResponse(json.loads(item.replace("'", '"')), safe=False)
+    else:
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
 
@@ -219,3 +283,4 @@ def getProtectedAreas(request):
         
     else: 
         return JsonResponse({'error': 'Method not allowed'}, status=405)
+

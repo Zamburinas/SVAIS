@@ -8,3 +8,5 @@ class Database(Enum):
     USERS = "users"
     COORDS="coordinates"
     AREAS="protectedAreas"
+    STATUS = "Status"
+    VESSELTYPE = "VesselType"
