@@ -143,9 +143,9 @@
       const q = isInsideEllipse(boat, center, semiMajorAxis, semiMinorAxis, angle);
       const fillColor = q ? '#00FF00' : '#FF0000';
         if(!q){
-            showAlert("Este barco está en la posición que reporta", true);
+            showAlert("Este barco no está en la posición que reporta", true);
         }else{
-            showAlert("Este barco no está en la posición que reporta", false)
+            showAlert("Este barco está en la posición que reporta", false)
         }
       currentEllipse =L.polygon(points, {
           color: 'dark',
