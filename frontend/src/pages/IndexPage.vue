@@ -1,5 +1,6 @@
 <template>
   <q-page>
+    <div id="alertBox" class="alert-box"></div>
     <div id="map"></div>
   </q-page>
 </template>
@@ -9,6 +10,30 @@ import { onMounted, onUnmounted } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { inject } from 'vue';
+const boat=[{
+  MMSI: 338531000,
+  BaseDateTime: "2020-01-01T00:00:02",
+  LAT: 42.2406,
+  LON: -8.7207,
+  SOG: 6.8,
+  COG: 48.8,
+  Heading: 44,
+  VesselName: "GENESIS VIGILANT",
+  IMO: "IMO8973928",
+  CallSign: "WDG9352",
+  VesselType: 31,
+  Status: 0,
+  Length: 30,
+  Width: 10,
+  Draft: 5,
+  Cargo: 31,
+  TransceiverClass: "A"
+}];
+const radiogonos=[
+            (43.6728903,-7.8391903) ,
+            (56.130366,-106.346771) ,
+            (-34.61315,-58.37723) 
+        ]
 let Areas;
 let currentEllipse = null;
 let currentLines = [];
@@ -72,7 +97,6 @@ async function initializeMapAndLocator() {
         currentLines = [];
       }
       let aux= await helpers.getBoatInfo(boat.MMSI);
-      console.log(aux.data.LON)
       const date = new Date(aux.data.BaseDateTime);
       const formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
       const formattedTime = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
@@ -126,6 +150,11 @@ async function initializeMapAndLocator() {
     }
     const q = isInsideEllipse(boat, center, semiMajorAxis, semiMinorAxis, angle);
     const fillColor = q ? '#00FF00' : '#FF0000';
+    if(!q){
+      showAlert("Este barco está en la posición que reporta", true);
+    }else{
+      showAlert("Este barco no está en la posición que reporta", false)
+    }
 
     currentEllipse =L.polygon(points, {
         color: 'dark',
@@ -201,7 +230,30 @@ function drawAreas() {
     });
 }
 
+function showAlert(message,color) {
+  // Obtener el elemento del div de alerta
+  const alertBox = document.getElementById('alertBox');
 
+  // Establecer el mensaje de alerta en el contenido del div
+  alertBox.textContent = message;
+
+  // Establecer el estilo CSS para el fondo rojo+
+  if (color){
+    alertBox.style.backgroundColor = '#f44336';
+  }else{
+    alertBox.style.backgroundColor = '#4CAF50'; 
+  }
+  
+
+  // Mostrar el div de alerta
+  alertBox.style.display = 'block';
+
+  // Después de un tiempo, ocultar el div de alerta
+  setTimeout(() => {
+    alertBox.style.display = 'none';
+  }, 5000); // Ocultar la alerta después de 5 segundos (5000 milisegundos)
+
+}
 
 onMounted(() => {
   initializeMapAndLocator();
@@ -230,5 +282,16 @@ onMounted(() => {
 .boat-name {
     font-weight: bold; /* Texto en negrita */
     font-size: 16px; /* Tamaño de fuente más grande */
+}
+.alert-box {
+  display: none;
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  z-index: 9999;
 }
 </style>

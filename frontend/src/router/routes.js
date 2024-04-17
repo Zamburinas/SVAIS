@@ -78,6 +78,82 @@ const routes = [
     }
   },
   {
+    path: '/trainees/CorrectBoatPage',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { 
+        path: '', 
+        component: () => import('pages/CorrectBoatPage.vue'),
+        name: 'CorrectBoatPage'
+      }
+    ],
+    beforeEnter: async (to, from, next) => {
+      const token = await helpers.checkToken();
+      if (!token) {
+        next({ name: 'login' });
+      } else {
+        next();
+      }
+    }
+  },
+  {
+    path: '/trainees/IncorrectBoatPage',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { 
+        path: '', 
+        component: () => import('pages/IncorrectBoatPage.vue'),
+        name: 'IncorrectBoatPage'
+      }
+    ],
+    beforeEnter: async (to, from, next) => {
+      const token = await helpers.checkToken();
+      if (!token) {
+        next({ name: 'login' });
+      } else {
+        next();
+      }
+    }
+  },
+  {
+    path: '/trainees/IncorrectRoutePage',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { 
+        path: '', 
+        component: () => import('pages/IncorrectRoutePage.vue'),
+        name: 'IncorrectRoutePage'
+      }
+    ],
+    beforeEnter: async (to, from, next) => {
+      const token = await helpers.checkToken();
+      if (!token) {
+        next({ name: 'login' });
+      } else {
+        next();
+      }
+    }
+  },
+  {
+    path: '/trainees/CorrectRoutePage',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { 
+        path: '', 
+        component: () => import('pages/CorrectRoutePage.vue'),
+        name: 'CorrectRoutePage'
+      }
+    ],
+    beforeEnter: async (to, from, next) => {
+      const token = await helpers.checkToken();
+      if (!token) {
+        next({ name: 'login' });
+      } else {
+        next();
+      }
+    }
+  },
+  {
     path: '/register',
     component: () => import('layouts/MainLayout.vue'),
     children: [
