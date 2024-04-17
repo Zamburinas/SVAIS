@@ -70,7 +70,7 @@
       checked: false
     }));
     filteredBoats.value = boats.value;
-    handleBoatSelection(coords[133]);
+    handleBoatSelection(coords[80]);
   }
   
   
