@@ -7,6 +7,6 @@ urlpatterns = [
     path('login', views.login, name='login'),
     path('checkToken', views.checkToken, name = 'checkToken'),
     path('register', views.register, name = 'register'),
-    # path('twoFactorAuth', views.twoFactorAuth, name = 'twoFactorAuth'),
-    # path('disableTwoFactor', views.disableTwoFactor, name = 'disableTwoFactor')
+    path('twoFactorAuth', views.twoFactorAuth, name = 'twoFactorAuth'),
+    path('disableTwoFactor', views.disableTwoFactor, name = 'disableTwoFactor')
 ]
