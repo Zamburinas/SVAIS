@@ -138,5 +138,3 @@ CORS_ALLOWED_ORIGINS = [
     'https://localhost:9002'
 ]
 
-# settings.py
-SECURE_SSL_REDIRECT = True
