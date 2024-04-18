@@ -29,7 +29,7 @@ ALLOWED_HOSTS = [
     '192.168.0.20',
     'localhost',
     '10.26.10.10',
-    'ais.decodifier.uk.to'
+    'svais.jbl.mooo.com'
 ]
 
 
