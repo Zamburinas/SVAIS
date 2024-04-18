@@ -132,8 +132,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOW_ALL_ORIGINS = True
 # settings.py
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:9000',
-    'http://ais.decodifier.uk.to:9001',
-    'http://192.168.*:9001',  # Your frontend application URL
-    'http://localhost:9002'
+    'https://localhost:9000',
+    'https://svais.jbl.mooo.com:9001',
+    'https://192.168.*:9001',  # Your frontend application URL
+    'https://localhost:9002'
 ]
+
