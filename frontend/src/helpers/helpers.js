@@ -1,9 +1,8 @@
-const url = 'svais.jbl.mooo.com'
-const port = 9002;
+const url = 'svais.jbl.mooo.com/api'
 import { Notify, SessionStorage } from 'quasar';
 
 export async function login(email, password, tfa) {
-  return await fetch(`https://${url}:${port}/users/login`, {
+  return await fetch(`https://${url}/users/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -37,7 +36,7 @@ export async function login(email, password, tfa) {
 }
 
 export async function register(userData) {
-  return await fetch(`https://${url}:${port}/users/register`, {
+  return await fetch(`https://${url}/users/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -63,7 +62,7 @@ export async function register(userData) {
 }
 
 export async function checkToken() {
-  return await fetch(`https://${url}:${port}/users/checkToken`, {
+  return await fetch(`https://${url}/users/checkToken`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -123,7 +122,7 @@ export function pushNotification(color,
 
 
 export async function getAllCoords() {
-  return await fetch(`https://${url}:${port}/coords/coords`, {
+  return await fetch(`https://${url}/coords/coords`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json"
@@ -138,7 +137,7 @@ export async function getAllCoords() {
 }
 
 export async function getBoatNames() {
-  return await fetch(`https://${url}:${port}/coords/boat_names`, {
+  return await fetch(`https://${url}/coords/boat_names`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json"
@@ -153,7 +152,7 @@ export async function getBoatNames() {
 }
 
 export async function getBoatRoute(boatName) {
-  return await fetch(`https://${url}:${port}/coords/get_route`, {
+  return await fetch(`https://${url}/coords/get_route`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -168,7 +167,7 @@ export async function getBoatRoute(boatName) {
 }
 
 export async function getBoatInfo(boatName) {
-  return await fetch(`https://${url}:${port}/coords/boatInfo`, {
+  return await fetch(`https://${url}/coords/boatInfo`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -183,7 +182,7 @@ export async function getBoatInfo(boatName) {
 }
 
 export async function getBoats(boatName) {
-  return await fetch(`https://${url}:${port}/coords/boat_names`, {
+  return await fetch(`https://${url}/coords/boat_names`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -200,7 +199,7 @@ export async function getBoats(boatName) {
 
 
 export async function getProtectedAreas() {
-  return await fetch(`https://${url}:${port}/coords/getProtectedAreas`, {
+  return await fetch(`https://${url}/coords/getProtectedAreas`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json"
@@ -215,7 +214,7 @@ export async function getProtectedAreas() {
 }
 
 export async function sendImageToBackend(imageFile, password) {
-  return await fetch(`https://${url}:${port}/users/twoFactorAuth`, {
+  return await fetch(`https://${url}/users/twoFactorAuth`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -281,7 +280,7 @@ export async function takePhoto() {
 }
 
 export async function disableTwoFactor(password) {
-  return await fetch(`https://${url}:${port}/users/disableTwoFactor`, {
+  return await fetch(`https://${url}/users/disableTwoFactor`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
