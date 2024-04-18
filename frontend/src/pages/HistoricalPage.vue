@@ -10,8 +10,8 @@
           <q-input outlined v-model="searchQuery" @keyup="search" placeholder="Search boats...">
           </q-input>
           <!-- Agregar el q-select con las opciones desplegables -->
-          <!-- <q-select v-model="selectedOption" :options="selectOptions">
-          </q-select> -->
+           <q-select v-model="selectedOption" :options="selectOptions"> 
+          </q-select> 
         </div>
         <q-virtual-scroll :items="filteredBoats" item-height="50">
           <template v-slot="{ item }">
@@ -37,7 +37,7 @@ import { onMounted, ref } from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { inject } from 'vue';
-// let selectedOption = ref('Nombre');
+let selectedOption = ref('Nombre');
 let searchQuery = "";
 let markers = new Map(); // Usamos un Map para almacenar los marcadores de barcos
 let routes = new Map(); // Mapa para almacenar las rutas de los barcos
@@ -49,12 +49,12 @@ let boats = ref([]); // Variable para almacenar los datos de los barcos
 let filteredBoats = ref([]); // Variable para almacenar los barcos filtrados
 let alertCount = 0;
 
-// const selectOptions = [
-//   { label: 'Nombre', value: 'VesselName' },
-//   { label: 'MMSI', value: 'MMSI' },
-//   { label: 'Tipo de Vessel', value: 'VesselName' },
-//   { label: 'Estado', value: 'Status' }
-// ];
+const selectOptions = [
+  { label: 'Nombre', value: 'VesselName' },
+  { label: 'MMSI', value: 'MMSI' },
+  { label: 'Tipo de Vessel', value: 'VesselType' },
+  { label: 'Estado', value: 'Status' }
+];
 
 const PointIcon = L.icon({
   iconUrl: 'src/assets/point.png',
@@ -130,15 +130,7 @@ async function handleBoatSelection(boat) {
         // Crear y agregar ruta del barco al mapa
         const boatRoute = L.polyline(primerosDosElementos, { color: routeColor, weight: 5 }).addTo(map);
         routesArray.push(boatRoute);
-        
 
-        // Agregar evento de clic a la ruta del barco para mostrar un popup
-        boatRoute.on('click', function (e) {
-          L.popup()
-            .setLatLng(e.latlng)
-            .setContent('Aquí podemos poner información sobre la velocidad promedio y máxima por ahora')
-            .openOn(map);
-        });
 
         if (index === response.length - 1) {
           // Si es la última ruta, obtener las últimas coordenadas
@@ -176,9 +168,9 @@ async function handleBoatSelection(boat) {
       pointMarkers.set(boat, pointMarkersArray);
 
       if (alertCount !== 0) {
-        showAlert("There are a total of " + alertCount + " suspicious segments", true);
+        showAlert("Hay un total de " + alertCount + " tramos sospechosos", true);
       } else {
-        showAlert("Correct route", false);
+        showAlert("Ruta correcta", false);
       }
 
 
@@ -301,16 +293,18 @@ function randomColor(usedColors) {
 }
 
 async function search() {
-  // if (selectedOption.value=='Name'){
-  //   const option= "VesselName";
-  // }else{
-  //   const option= selectedOption.value.value
-  // }
-  
+  let option='as';
+  if (selectedOption.value=='Name'){
+     option= "VesselName";
+  }else{
+     option= selectedOption.value.value
+  }
 
-  // // Filtrar los barcos que coincidan con la consulta de búsqueda
-  // let prueba= await helpers.getBoats({option:searchQuery.toLowerCase()});
-  // console.log(prueba);
+
+  // Filtrar los barcos que coincidan con la consulta de búsqueda
+  console.log(option);
+  let prueba= await helpers.getBoats({[option]:{"$regex":searchQuery,'$options': 'i'}});
+  console.log(prueba);
   filteredBoats.value = boats.value.filter(boat => {
     return boat.name.toLowerCase().includes(searchQuery.toLowerCase());
   });

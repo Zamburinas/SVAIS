@@ -111,7 +111,7 @@ const notLoginList = [
     size: 'sm'
   },
   {
-    title: 'Signup',
+    title: 'Registrarse',
     icon: 'how_to_reg',
     page: '/register',
     size: 'sm'
@@ -121,20 +121,20 @@ const notLoginList = [
 const loginList = [
 
   {
-    title: 'Map',
+    title: 'Mapa',
     icon: 'map',
     page: '/',
     size: 'sm'
   },
   {
-    title: 'Historical',
+    title: 'Histórico',
     icon: 'list',
     page: '/historical',
     size: 'sm'
   },
   {
-    title: 'Trainees',
-    icon: 'example',
+    title: 'Casos de uso',
+    icon: 'school',
     page: '/trainees',
     size: 'sm'
   }

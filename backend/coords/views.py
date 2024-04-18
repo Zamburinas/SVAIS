@@ -200,19 +200,33 @@ def boat_names(request):
     if request.method == 'POST': 
         db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
         body = json.loads(request.body)
-        pipeline = []
-        project_stage = {"$project": {"_id": 0, "VesselName": 1}}
 
-        if "MMSI" in body:
-            match_stage = {"$match": {"MMSI": body["MMSI"]}}
-            group_stage = {"$group": {"_id": "$MMSI", "VesselName": {"$first": "$VesselName"}}}
-            project_stage["$project"]["MMSI"] = "$_id"
-            pipeline.extend([match_stage, group_stage])
+        print(body)
+        query = body
+        pipeline = [
+                {
+                    "$match": query  # Utiliza la consulta proporcionada para filtrar los resultados
+                },
+                {
+                    "$group": {
+                        "_id": "$VesselName"  
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,  # Excluye el campo "_id"
+                        "VesselName": "$_id"  # Renombra "_id" a "VesselName"
+                    }
+                }
+            ]
+        resultados = db[Database.COORDS.value].aggregate(pipeline)
+        vessel_names_set = set()
+        for resultado in resultados:
+            vessel_names_set.add(resultado["VesselName"])
 
-
-        resultados = list(db[Database.COORDS.value].aggregate(pipeline))
-        print(len(resultados))
-        return JsonResponse(json.dumps(resultados), safe=False)
+        vessel_names_unique = list(vessel_names_set)
+        print(len(vessel_names_unique))
+        return JsonResponse(json.dumps(vessel_names_unique), safe=False)
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 

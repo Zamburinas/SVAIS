@@ -12,8 +12,7 @@
       >
         <div class="content">
           <h4 class="title">{{ box.title }}</h4>
-          <p>{{ box.description }}</p>
-          <img :src="box.image" alt="Image" style="width: 200px; height: 180px;">
+          <img :src="box.image" alt="Image" style="width: 250px; height: 230px; margin-bottom:2%">
         </div>
       </div>
     </div>
@@ -26,8 +25,8 @@ export default {
     return {
       hover: null,
       boxes: [
-        { id: 1, title: 'Posición y comprobación de posición correcta de un barco', description: 'Description 1', image: 'src/assets/IncorrectBoat.png', page: 'CorrectBoatPage' },
-        { id: 2, title: 'Posición y comprobación de posición incorrecta de un barco', description: 'Description 2', image: 'src/assets/CorrectBoat.png', page: 'IncorrectBoatPage' },
+        { id: 1, title: 'Posición y comprobación de posición correcta de un barco', description: 'Description 1', image: 'src/assets/CorrectBoat.png', page: 'CorrectBoatPage' },
+        { id: 2, title: 'Posición y comprobación de posición incorrecta de un barco', description: 'Description 2', image: 'src/assets/IncorrectBoat.png', page: 'IncorrectBoatPage' },
         { id: 3, title: 'Ruta de un barco correcta', description: 'Description 3', image: 'src/assets/CorrectRoute.png', page: 'CorrectRoutePage' },
         { id: 4, title: 'Ruta de un barco incorrecta', description: 'Description 4', image: 'src/assets/IncorrectRoute.png', page: 'IncorrectRoutePage' }
       ]
