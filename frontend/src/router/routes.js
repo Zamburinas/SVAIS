@@ -154,6 +154,25 @@ const routes = [
     }
   },
   {
+    path: '/upload',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { 
+        path: '', 
+        component: () => import('pages/UploadPage.vue'),
+        name: 'UploadPage'
+      }
+    ],
+    beforeEnter: async (to, from, next) => {
+      const token = await helpers.checkToken();
+      if (!token) {
+        next({ name: 'login' });
+      } else {
+        next();
+      }
+    }
+  },
+  {
     path: '/register',
     component: () => import('layouts/MainLayout.vue'),
     children: [

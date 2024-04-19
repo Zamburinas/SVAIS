@@ -137,6 +137,12 @@ const loginList = [
     icon: 'school',
     page: '/trainees',
     size: 'sm'
+  },
+  {
+    title: 'Decodificar',
+    icon: 'upload',
+    page: '/upload',
+    size: 'sm'
   }
 ]
 
