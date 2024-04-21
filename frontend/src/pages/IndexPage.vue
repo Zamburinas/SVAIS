@@ -10,7 +10,7 @@ import { onMounted, onUnmounted } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { inject } from 'vue';
-const boat=[{
+const boat = [{
   MMSI: 338531000,
   BaseDateTime: "2020-01-01T00:00:02",
   LAT: 42.2406,
@@ -29,75 +29,75 @@ const boat=[{
   Cargo: 31,
   TransceiverClass: "A"
 }];
-const radiogonos=[
-            (43.6728903,-7.8391903) ,
-            (56.130366,-106.346771) ,
-            (-34.61315,-58.37723) 
-        ]
+const radiogonos = [
+  (43.6728903, -7.8391903),
+  (56.130366, -106.346771),
+  (-34.61315, -58.37723)
+]
 let Areas;
 let currentEllipse = null;
 let currentLines = [];
 let linesGroup = L.layerGroup();
-let helpers= inject('helpers');
-let map=null;
+let helpers = inject('helpers');
+let map = null;
 async function initializeMapAndLocator() {
   if (!map) {
-  let coorGoniometros=null;
-  let boats =null;
-  let coords = await helpers.getAllCoords();
-  if(coords){
-    coorGoniometros=coords.radiogonos;
-    boats =coords.boats;
-  }
-  Areas = await helpers.getProtectedAreas();
-      
-  map= L.map('map').setView([42.156932, -8.880105], 9);
+    let coorGoniometros = null;
+    let boats = null;
+    let coords = await helpers.getAllCoords();
+    if (coords) {
+      coorGoniometros = coords.radiogonos;
+      boats = coords.boats;
+    }
+    Areas = await helpers.getProtectedAreas();
 
-  L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    id: "streets-v12",
-    accessToken: "pk.eyJ1IjoiYm9id2F0Y2hlcngiLCJhIjoiY2xiMGwwZThrMWg3aTNwcW1mOGRucHh6bSJ9.kNHlmRqkRSxYNeipcKkJhw",
-  }).addTo(map);
+    map = L.map('map').setView([42.156932, -8.880105], 9);
 
-  const boatIcon = L.icon({
-    iconUrl: 'src/assets/cruise_colored-icon.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  });
-  const antennaIcon = L.icon({
-    iconUrl: 'src/assets/antena.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  });
+    L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      id: "streets-v12",
+      accessToken: "pk.eyJ1IjoiYm9id2F0Y2hlcngiLCJhIjoiY2xiMGwwZThrMWg3aTNwcW1mOGRucHh6bSJ9.kNHlmRqkRSxYNeipcKkJhw",
+    }).addTo(map);
 
-  coorGoniometros.forEach(Goni => {
-    const marker = L.marker(Goni, { icon: antennaIcon }).addTo(map);
-    marker.bindPopup(`Latitude: ${Goni[0]}, Longitude: ${Goni[1]}`);
-  });
+    const boatIcon = L.icon({
+      iconUrl: 'src/assets/cruise_colored-icon.png',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+    const antennaIcon = L.icon({
+      iconUrl: 'src/assets/antena.png',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
 
-  drawAreas();
-  
-  boats.forEach(boat => {
+    coorGoniometros.forEach(Goni => {
+      const marker = L.marker(Goni, { icon: antennaIcon }).addTo(map);
+      marker.bindPopup(`Latitude: ${Goni[0]}, Longitude: ${Goni[1]}`);
+    });
 
-    
-    const marker = L.marker([boat.LAT,boat.LON], { icon: boatIcon }).addTo(map);
+    drawAreas();
 
-    marker.on('click', async() => {
-      if (currentEllipse) {
-        currentEllipse.remove();
-        linesGroup.clearLayers();
-      }
+    boats.forEach(boat => {
 
-      if (currentLines.length > 0) {
-        currentLines.forEach(line => {
-          line.remove();
-        });
-        currentLines = [];
-      }
-      let aux= await helpers.getBoatInfo(boat.MMSI);
 
-      var popupContent = `<div class="popup-content">
+      const marker = L.marker([boat.LAT, boat.LON], { icon: boatIcon }).addTo(map);
+
+      marker.on('click', async () => {
+        if (currentEllipse) {
+          currentEllipse.remove();
+          linesGroup.clearLayers();
+        }
+
+        if (currentLines.length > 0) {
+          currentLines.forEach(line => {
+            line.remove();
+          });
+          currentLines = [];
+        }
+        let aux = await helpers.getBoatInfo(boat.MMSI);
+
+        var popupContent = `<div class="popup-content">
                                 <span class="label">Nombre:</span> <span class="boat-name">${aux.data.VesselName}</span><br>
                                 <span class="label">Tipo de Barco:</span> <span class="vessel-type">${aux.data.VesselType}</span><br>
                                 <span class="label">MMSI:</span> <span class="mmsi">${aux.data.MMSI}</span><br>
@@ -110,21 +110,21 @@ async function initializeMapAndLocator() {
 
 
 
-      var popup = L.popup().setContent(popupContent);
-      marker.bindPopup(popup).openPopup();
-      drawLinesWithAnimation(map, [boat.LAT,boat.LON], coorGoniometros.map(antenna => antenna));
+        var popup = L.popup().setContent(popupContent);
+        marker.bindPopup(popup).openPopup();
+        drawLinesWithAnimation(map, [boat.LAT, boat.LON], coorGoniometros.map(antenna => antenna));
+      });
     });
-  });
 
-  map.on('click', () => {
-    if (currentEllipse) {
-      currentEllipse.remove();
-      currentEllipse = null;
-      linesGroup.clearLayers();
-    }
-  });
+    map.on('click', () => {
+      if (currentEllipse) {
+        currentEllipse.remove();
+        currentEllipse = null;
+        linesGroup.clearLayers();
+      }
+    });
 
-  }else{
+  } else {
     map.eachLayer(layer => {
       map.removeLayer(layer);
     });
@@ -132,31 +132,31 @@ async function initializeMapAndLocator() {
 
 
 
-  function drawEllipse(map, boat,center, semiMajorAxis, semiMinorAxis, angle) {
+  function drawEllipse(map, boat, center, semiMajorAxis, semiMinorAxis, angle) {
     var angle = angle * Math.PI / 180;
     var numSegments = 400;
     var points = [];
     var angleOffset = 2 * Math.PI / numSegments;
 
     for (var i = 0; i < numSegments; i++) {
-        var angleRad = i * angleOffset;
-        var x = center[0] + (0.0001)*semiMajorAxis * Math.cos(angleRad) * Math.cos(angle) - (0.0001)*semiMinorAxis * Math.sin(angleRad) * Math.sin(angle);
-        var y = center[1] + (0.0001)*semiMajorAxis * Math.cos(angleRad) * Math.sin(angle) + (0.0001)*semiMinorAxis * Math.sin(angleRad) * Math.cos(angle);
-        points.push([x, y]);
+      var angleRad = i * angleOffset;
+      var x = center[0] + (0.0001) * semiMajorAxis * Math.cos(angleRad) * Math.cos(angle) - (0.0001) * semiMinorAxis * Math.sin(angleRad) * Math.sin(angle);
+      var y = center[1] + (0.0001) * semiMajorAxis * Math.cos(angleRad) * Math.sin(angle) + (0.0001) * semiMinorAxis * Math.sin(angleRad) * Math.cos(angle);
+      points.push([x, y]);
     }
     const q = isInsideEllipse(boat, center, semiMajorAxis, semiMinorAxis, angle);
     const fillColor = q ? '#00FF00' : '#FF0000';
-    if(!q){
+    if (!q) {
       showAlert("Este barco no está en la posición que reporta", true);
-    }else{
+    } else {
       showAlert("Este barco está en la posición que reporta", false)
     }
 
-    currentEllipse =L.polygon(points, {
-        color: 'dark',
-        fillColor: fillColor,
-        fillOpacity: 0.4,
-        interactive: false
+    currentEllipse = L.polygon(points, {
+      color: 'dark',
+      fillColor: fillColor,
+      fillOpacity: 0.4,
+      interactive: false
     }).addTo(map);
   }
 
@@ -169,7 +169,7 @@ async function initializeMapAndLocator() {
     const rotatedDx = cosAngle * dx - sinAngle * dy;
     const rotatedDy = sinAngle * dx + cosAngle * dy;
 
-    return (rotatedDx * rotatedDx) / (semiMajorAxis*(0.0001) * semiMajorAxis*(0.0001)) + (rotatedDy * rotatedDy) / (semiMinorAxis *(0.0001)* semiMinorAxis*(0.0001)) <= 1;
+    return (rotatedDx * rotatedDx) / (semiMajorAxis * (0.0001) * semiMajorAxis * (0.0001)) + (rotatedDy * rotatedDy) / (semiMinorAxis * (0.0001) * semiMinorAxis * (0.0001)) <= 1;
   }
 
 
@@ -178,7 +178,7 @@ async function initializeMapAndLocator() {
     antennaCoordinates.forEach(antennaCoord => {
       const latlngs = [antennaCoord, boatCoordinates];
       const line = L.polyline([], { color: '#444', dashArray: '10, 10', weight: 1 });
-      
+
       let currentLatlng = [antennaCoord[0], antennaCoord[1]];
       let steps = 100;
       let step = 0;
@@ -194,39 +194,39 @@ async function initializeMapAndLocator() {
           step++;
         } else {
           clearInterval(lineDrawingInterval);
-          if(currentEllipse){
+          if (currentEllipse) {
             currentEllipse.remove();
-          }  
-          let semiMajorAxis=113.5624900059602;
-          let semiMinorAxis=127.04089357908843;
-          let angle  =-135.35846661098765;                                                  //Por ahora el centro de la elipse es el propio barco
-          drawEllipse(map,[boatCoordinates[0],boatCoordinates[1]] ,[boatCoordinates[0],boatCoordinates[1]],semiMajorAxis,semiMinorAxis,angle);
+          }
+          let semiMajorAxis = 113.5624900059602;
+          let semiMinorAxis = 127.04089357908843;
+          let angle = -135.35846661098765;                                                  //Por ahora el centro de la elipse es el propio barco
+          drawEllipse(map, [boatCoordinates[0], boatCoordinates[1]], [boatCoordinates[0], boatCoordinates[1]], semiMajorAxis, semiMinorAxis, angle);
         }
       }, 50);
-      
+
       line.addTo(linesGroup);
-      
+
     });
-    
+
     linesGroup.addTo(map);
   }
 }
 
 function drawAreas() {
-    Areas.forEach(area => {
-        const coordinates = area.coordinates[0].map(coord => [coord[0], coord[1]]);
-        const polygon = L.polygon(coordinates, { color: 'red' }).addTo(map);
-        
-        polygon.on('click', function (e) {
-            L.popup()
-                .setLatLng(e.latlng)
-                .setContent(area.name)
-                .openOn(map);
-        });
+  Areas.forEach(area => {
+    const coordinates = area.coordinates[0].map(coord => [coord[0], coord[1]]);
+    const polygon = L.polygon(coordinates, { color: 'red' }).addTo(map);
+
+    polygon.on('click', function (e) {
+      L.popup()
+        .setLatLng(e.latlng)
+        .setContent(area.name)
+        .openOn(map);
     });
+  });
 }
 
-function showAlert(message,color) {
+function showAlert(message, color) {
   // Obtener el elemento del div de alerta
   const alertBox = document.getElementById('alertBox');
 
@@ -234,12 +234,12 @@ function showAlert(message,color) {
   alertBox.textContent = message;
 
   // Establecer el estilo CSS para el fondo rojo+
-  if (color){
+  if (color) {
     alertBox.style.backgroundColor = '#f44336';
-  }else{
-    alertBox.style.backgroundColor = '#4CAF50'; 
+  } else {
+    alertBox.style.backgroundColor = '#4CAF50';
   }
-  
+
 
   // Mostrar el div de alerta
   alertBox.style.display = 'block';
@@ -266,19 +266,31 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
 }
+
 .popup-content {
-    max-width: 200px; /* Ancho máximo del popup */
-    padding: 10px; /* Espaciado interior del popup */
-    background-color: #ffffff; /* Color de fondo del popup */
-    border: 1px solid #ccc; /* Borde del popup */
-    border-radius: 5px; /* Radio de borde del popup */
-    font-family: Arial, sans-serif; /* Fuente del texto del popup */
-    font-size: 14px; /* Tamaño de fuente del texto del popup */
+  max-width: 200px;
+  /* Ancho máximo del popup */
+  padding: 10px;
+  /* Espaciado interior del popup */
+  background-color: #ffffff;
+  /* Color de fondo del popup */
+  border: 1px solid #ccc;
+  /* Borde del popup */
+  border-radius: 5px;
+  /* Radio de borde del popup */
+  font-family: Arial, sans-serif;
+  /* Fuente del texto del popup */
+  font-size: 14px;
+  /* Tamaño de fuente del texto del popup */
 }
+
 .boat-name {
-    font-weight: bold; /* Texto en negrita */
-    font-size: 16px; /* Tamaño de fuente más grande */
+  font-weight: bold;
+  /* Texto en negrita */
+  font-size: 16px;
+  /* Tamaño de fuente más grande */
 }
+
 .alert-box {
   display: none;
   position: fixed;

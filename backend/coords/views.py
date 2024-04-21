@@ -167,7 +167,9 @@ def detect_new_routes(resultado):
 def filtrar_coordenadas(resultado, min_distance):
     if min_distance == 0 or len(resultado) < 2:
         # Si la distancia mínima es cero o solo hay un punto, devolver solo la última posición
-        return [resultado[-1]]
+        if resultado:
+            return [resultado[-1]]
+        return []
 
     filtered_result = []
     movimiento_iniciado = False

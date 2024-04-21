@@ -10,8 +10,8 @@
           <q-input outlined v-model="searchQuery" @keyup="search" placeholder="Search boats...">
           </q-input>
           <!-- Agregar el q-select con las opciones desplegables -->
-           <q-select v-model="selectedOption" :options="selectOptions"> 
-          </q-select> 
+          <q-select v-model="selectedOption" :options="selectOptions">
+          </q-select>
         </div>
         <q-virtual-scroll :items="filteredBoats" item-height="50">
           <template v-slot="{ item }">
@@ -106,14 +106,14 @@ async function handleBoatSelection(boat) {
 
       let lastCoords; // Últimas coordenadas de la última ruta
       let pointMarkersArray = [];
-      let routesArray=[];
-      response.forEach((routeData,index) => {
+      let routesArray = [];
+      response.forEach((routeData, index) => {
         let routeColor = randomColor(usedColors);
         for (let i = 1; i < routeData.route.length; i++) {
           const [lat1, lon1, time1, sog1] = routeData.route[i - 1];
           const [lat2, lon2, time2, sog2] = routeData.route[i];
-          
-          const speedKnots=calcularDistancia(lat1, lon1, lat2, lon2,time1,time2);
+
+          const speedKnots = calcularDistancia(lat1, lon1, lat2, lon2, time1, time2);
 
 
           if (speedKnots > sog2 * 2) {
@@ -150,22 +150,22 @@ async function handleBoatSelection(boat) {
         }
 
 
-        let indexPoint=0;
-        if(index==response.lenth){
-          indexPoint=routeData.route.length -1
-        }else{
-          indexPoint=routeData.route.length
+        let indexPoint = 0;
+        if (index == response.lenth) {
+          indexPoint = routeData.route.length - 1
+        } else {
+          indexPoint = routeData.route.length
         }
 
-        
-        for (let i = 0; i <indexPoint ; i++) {
+
+        for (let i = 0; i < indexPoint; i++) {
           const coord = routeData.route[i];
           const marker = L.marker([coord[0], coord[1]], { icon: PointIcon }).addTo(map);
           pointMarkersArray.push(marker);
         }
-        
+
       });
-      routes.set(boat,routesArray);
+      routes.set(boat, routesArray);
       pointMarkers.set(boat, pointMarkersArray);
 
       if (alertCount !== 0) {
@@ -178,6 +178,25 @@ async function handleBoatSelection(boat) {
       // Colocar el icono del barco en el último punto de la última ruta
       if (lastCoords) {
         const boatMarker = L.marker([lastCoords[0], lastCoords[1]], { icon: boatIcon }).addTo(map);
+        boatMarker.on('click', async () => {
+          let aux = await helpers.getBoatInfo(boat.MMSI);
+
+          var popupContent = `<div class="popup-content">
+                                <span class="label">Nombre:</span> <span class="boat-name">${aux.data.VesselName}</span><br>
+                                <span class="label">Tipo de Barco:</span> <span class="vessel-type">${aux.data.VesselType}</span><br>
+                                <span class="label">MMSI:</span> <span class="mmsi">${aux.data.MMSI}</span><br>
+                                <span class="label">Fecha:</span> <span class="date">${aux.data.day}</span><br>
+                                <span class="label">Hora:</span> <span class="time">${aux.data.hour}</span><br>
+                                <span class="label">Estado:</span> <span class="status">${aux.data.STATUS}</span><br>
+                                <span class="label">Latitud:</span> <span class="latitude">${aux.data.LAT}</span><br>
+                                <span class="label">Longitud:</span> <span class="longitude">${aux.data.LON}</span><br>
+                              </div>`;
+
+
+
+          var popup = L.popup().setContent(popupContent);
+          boatMarker.bindPopup(popup).openPopup();
+        });
         markers.set(boat, boatMarker); // Asociar el marcador con el barco en el mapa
       }
 
@@ -190,7 +209,7 @@ async function handleBoatSelection(boat) {
 }
 
 
-function calcularDistancia(lat1, lon1, lat2, lon2,time1,time2){
+function calcularDistancia(lat1, lon1, lat2, lon2, time1, time2) {
   const distance = haversineDistance(lat1, lon1, lat2, lon2);
   const timeDiff = (new Date(time2) - new Date(time1)) / (1000 * 3600);
   const speedKmh = distance / timeDiff;
@@ -198,7 +217,7 @@ function calcularDistancia(lat1, lon1, lat2, lon2,time1,time2){
   return speedKnots;
 }
 
-function showAlert(message,color) {
+function showAlert(message, color) {
   // Obtener el elemento del div de alerta
   const alertBox = document.getElementById('alertBox');
 
@@ -206,12 +225,12 @@ function showAlert(message,color) {
   alertBox.textContent = message;
 
   // Establecer el estilo CSS para el fondo rojo+
-  if (color){
+  if (color) {
     alertBox.style.backgroundColor = '#f44336';
-  }else{
-    alertBox.style.backgroundColor = '#4CAF50'; 
+  } else {
+    alertBox.style.backgroundColor = '#4CAF50';
   }
-  
+
 
   // Mostrar el div de alerta
   alertBox.style.display = 'block';
@@ -222,7 +241,7 @@ function showAlert(message,color) {
   }, 5000); // Ocultar la alerta después de 5 segundos (5000 milisegundos)
 
   // Decrementar el contador de alertas y actualizar el botón
-  alertCount=0;
+  alertCount = 0;
 }
 
 function haversineDistance(lat1, lon1, lat2, lon2) {
@@ -230,8 +249,8 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   const dLat = (lat2 - lat1) * Math.PI / 180;  // Convertir a radianes
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distance = R * c; // Distancia en kilómetros
   return distance;
@@ -243,7 +262,7 @@ function removeBoat(boat) {
   // Remove boat marker, route, and point markers associated with the deselected boat
   removeMarker(markers.get(boat));
   removeRoutes(boat);
-  
+
   removePointMarkers(boat);
 
   // Remove boat from maps
@@ -266,7 +285,7 @@ function removePointMarkers(boat) {
     });
     pointMarkers.set(boat, []);
   }
-  
+
 }
 
 function removeRoutes(boat) {
@@ -294,16 +313,16 @@ function randomColor(usedColors) {
 }
 
 async function search() {
-  let option='as';
-  if (selectedOption.value=='Name'){
-     option= "SHIPNAME";
-  }else{
-     option= selectedOption.value.value
+  let option = 'as';
+  if (selectedOption.value == 'Name') {
+    option = "SHIPNAME";
+  } else {
+    option = selectedOption.value.value
   }
 
 
   // Filtrar los barcos que coincidan con la consulta de búsqueda
-  let prueba= await helpers.getBoats({[option]:{"$regex":searchQuery,'$options': 'i'}});
+  let prueba = await helpers.getBoats({ [option]: { "$regex": searchQuery, '$options': 'i' } });
   filteredBoats.value = boats.value.filter(boat => {
     return prueba.includes(boat.name);
   });
@@ -346,7 +365,4 @@ onMounted(() => {
   border-radius: 5px;
   z-index: 9999;
 }
-
-
-
 </style>
