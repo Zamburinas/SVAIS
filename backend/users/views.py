@@ -1,7 +1,7 @@
 # myapp/views.py
 import json
 import re
-# import face_recognition
+import face_recognition
 import base64
 import numpy as np
 import os
@@ -9,8 +9,8 @@ from users.utils import Authenticate
 from django.http import JsonResponse, HttpResponse
 from pymongo import MongoClient
 from config import *
-# from io import BytesIO
-# from PIL import Image
+from io import BytesIO
+from PIL import Image
 
 collection = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)[
     Database.USERS.value
@@ -38,11 +38,11 @@ def login(request):
                     status=400,
                 )
 
-            # if not _two_factor_auth(email, tfa):
-            #     return JsonResponse(
-            #         {"msg": "Two Factor Authentication doesn't match", "tfa": True},
-            #         status=400,
-            #     )
+            if not _two_factor_auth(email, tfa):
+                return JsonResponse(
+                    {"msg": "Two Factor Authentication doesn't match", "tfa": True},
+                    status=400,
+                )
 
         token = Authenticate.encode_auth_token(email, minutes=60)
         return JsonResponse(
@@ -106,20 +106,20 @@ def twoFactorAuth(request):
         if not base64_image:
             return JsonResponse({"msg": "Not valid image."}, status=400)
 
-        # try:
-        #     collection.update_one(
-        #         {"email": body["email"]},
-        #         {
-        #             "$set": {
-        #                 "two_factor_auth": True,
-        #                 "tfa_enc": face_recognition.face_encodings(
-        #                     _base64_to_numpy(base64_image)
-        #                 )[0].tolist(),
-        #             }
-        #         },
-        #     )
-        # except Exception as e:
-        #     return JsonResponse({"msg": "An error has ocurred"}, status=500)
+        try:
+            collection.update_one(
+                {"email": body["email"]},
+                {
+                    "$set": {
+                        "two_factor_auth": True,
+                        "tfa_enc": face_recognition.face_encodings(
+                            _base64_to_numpy(base64_image)
+                        )[0].tolist(),
+                    }
+                },
+            )
+        except Exception as e:
+            return JsonResponse({"msg": "An error has ocurred"}, status=500)
 
         return JsonResponse({"message": "Image uploaded successfully"})
 
@@ -186,29 +186,29 @@ def _check_credentials(email, password):
     return False
 
 
-# def _two_factor_auth(user, face):
-#     user = get_credentials(user)
-#     if not user:
-#         return False
-#     user_encoded = user["tfa_enc"]
-#     face = _base64_to_numpy(face)
-#     try:
-#         face_encodings = face_recognition.face_encodings(face)[0]
-#     except:
-#         return False
+def _two_factor_auth(user, face):
+    user = get_credentials(user)
+    if not user:
+        return False
+    user_encoded = user["tfa_enc"]
+    face = _base64_to_numpy(face)
+    try:
+        face_encodings = face_recognition.face_encodings(face)[0]
+    except:
+        return False
 
-#     return face_recognition.compare_faces([np.array(user_encoded)], face_encodings)[0]
+    return face_recognition.compare_faces([np.array(user_encoded)], face_encodings)[0]
 
 
-# def _base64_to_numpy(base64_string):
-#     with open("image.jpg", "wb") as f:
-#         f.write(base64.b64decode(base64_string))
+def _base64_to_numpy(base64_string):
+    with open("image.jpg", "wb") as f:
+        f.write(base64.b64decode(base64_string))
 
-#     try:
-#         known_image = face_recognition.load_image_file("image.jpg")
-#     except:
-#         known_image = np.array([])
+    try:
+        known_image = face_recognition.load_image_file("image.jpg")
+    except:
+        known_image = np.array([])
 
-#     os.remove("image.jpg")
+    os.remove("image.jpg")
 
-#     return known_image
+    return known_image

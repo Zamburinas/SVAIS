@@ -257,9 +257,10 @@ def boat_names(request):
 
 
 def get_boat_name(mmsi):
-    boat_info = db[Database.COORDS.value].find_one({"MMSI": mmsi, "MSG_TYPE": 5})
-    if boat_info:
-        return boat_info["SHIPNAME"]
+    boat_info = db[Database.COORDS.value].find({"MMSI": mmsi, "MSG_TYPE": 5})
+    unique_name = {boat["SHIPNAME"] for boat in boat_info if boat["SHIPNAME"].lower() != 'desconocido'}
+    if unique_name:
+        return unique_name[0]
     return "Desconocido"
 
 
