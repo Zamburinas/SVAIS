@@ -19,7 +19,7 @@
               <q-item-section>
                 <label :for="'boat_checkbox_' + item.index" class="boat-checkbox">
                   <img :src="item.photo" style="width: 32px; height: 32px; border-radius: 50%;">
-                  <span>{{ item.name }}</span>
+                  <span>{{ item.name }} : {{ item.MMSI }}</span>
                 </label>
               </q-item-section>
               <!-- <input type="checkbox" :id="'boat_checkbox_' + item.index" v-model="item.checked"
@@ -37,7 +37,7 @@ import { onMounted, ref } from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { inject } from 'vue';
-let selectedOption = ref('Nombre');
+let selectedOption = ref('Name');
 let searchQuery = "";
 let markers = new Map(); // Usamos un Map para almacenar los marcadores de barcos
 let routes = new Map(); // Mapa para almacenar las rutas de los barcos
@@ -50,7 +50,7 @@ let filteredBoats = ref([]); // Variable para almacenar los barcos filtrados
 let alertCount = 0;
 
 const selectOptions = [
-  { label: 'Nombre', value: 'VesselName' },
+  { label: 'Nombre', value: 'SHIPNAME' },
   { label: 'MMSI', value: 'MMSI' },
   { label: 'Tipo de Vessel', value: 'VesselType' },
   { label: 'Estado', value: 'Status' }
@@ -71,7 +71,7 @@ const boatIcon = L.icon({
 
 
 async function initializeMapAndLocator() {
-  map = L.map('map').setView([37.0902, -95.7129], 4);
+  map = L.map('map').setView([42.156932, -8.880105], 9);
 
   L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
     maxZoom: 19,
@@ -82,9 +82,10 @@ async function initializeMapAndLocator() {
 
   let coords = JSON.parse(await helpers.getBoatNames());
   // Asignar los datos de los barcos a la variable boats
+  console.log(coords)
   boats.value = coords.map(coord => ({
     MMSI: coord.MMSI,
-    name: coord.VesselName,
+    name: coord.SHIPNAME,
     photo: "src/assets/cruise_colored-icon.png",
     checked: false
   }));
@@ -295,18 +296,16 @@ function randomColor(usedColors) {
 async function search() {
   let option='as';
   if (selectedOption.value=='Name'){
-     option= "VesselName";
+     option= "SHIPNAME";
   }else{
      option= selectedOption.value.value
   }
 
 
   // Filtrar los barcos que coincidan con la consulta de búsqueda
-  console.log(option);
   let prueba= await helpers.getBoats({[option]:{"$regex":searchQuery,'$options': 'i'}});
-  console.log(prueba);
   filteredBoats.value = boats.value.filter(boat => {
-    return boat.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return prueba.includes(boat.name);
   });
 }
 onMounted(() => {

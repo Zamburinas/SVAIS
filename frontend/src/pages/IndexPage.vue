@@ -51,7 +51,7 @@ async function initializeMapAndLocator() {
   }
   Areas = await helpers.getProtectedAreas();
       
-  map= L.map('map').setView([37.0902, -95.7129], 5);
+  map= L.map('map').setView([42.156932, -8.880105], 9);
 
   L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
     maxZoom: 19,

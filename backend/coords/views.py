@@ -76,8 +76,10 @@ def coords(request):
             time_received = {
                 "day": formatted_date,
                 "hour": formatted_time,
-                "BaseDateTime": f'{formatted_date}T{formatted_time}',
+                "BaseDateTime": f"{formatted_date}T{formatted_time}",
             }
+            if decoded_message.get('SHIPNAME', None) is None:
+                time_received['SHIPNAME'] = get_boat_name(decoded_message.get('MMSI'))
 
             decoded_message.update(time_received)
             db[Database.COORDS.value].insert_one(decoded_message)
@@ -104,9 +106,9 @@ def get_route(request):
         resultado = list(db[Database.COORDS.value].aggregate(pipeline))
         resultado_filtered = []
         for i in resultado:
-            if i.get('LAT', None) is not None:
+            if i.get("LAT", None) is not None:
                 resultado_filtered.append(i)
-        
+
         filtered_result = filtrar_coordenadas(resultado_filtered, min_distance)
 
         final_routes = detect_new_routes(filtered_result)
@@ -114,9 +116,13 @@ def get_route(request):
         response_data = []
 
         for route in final_routes:
-            print(route)
             route_data = [
-                (doc.get("LAT", None), doc.get("LON", None), doc.get("BaseDateTime", None), doc.get("SPEED", None))
+                (
+                    doc.get("LAT", None),
+                    doc.get("LON", None),
+                    doc.get("BaseDateTime", None),
+                    doc.get("SPEED", None),
+                )
                 for doc in route
             ]
             response_data.append({"route": route_data})
@@ -218,7 +224,6 @@ def boat_names(request):
         ]
 
         resultados = list(db[Database.COORDS.value].aggregate(pipeline))
-
         return JsonResponse(json.dumps(resultados), safe=False)
     if request.method == "POST":
 
@@ -246,6 +251,13 @@ def boat_names(request):
         return JsonResponse(json.dumps(vessel_names_unique), safe=False)
     else:
         return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+def get_boat_name(mmsi):
+    boat_info = db[Database.COORDS.value].find_one({"MMSI": mmsi, "MSG_TYPE": 5})
+    if boat_info:
+        return boat_info["SHIPNAME"]
+    return "Desconocido"
 
 
 def getBoatInfo(request):
