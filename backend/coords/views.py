@@ -1,9 +1,10 @@
+import json
+import pytz
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from pymongo import MongoClient
 from config import *
 from scipy.stats import chi2
-import json
 from datetime import datetime, timedelta
 from pyais.messages import AISSentence
 from datetime import datetime
@@ -12,7 +13,7 @@ from users.views import get_credentials
 # Create your views here.
 
 db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
-
+madrid_timezone = pytz.timezone('Europe/Madrid')
 
 def coords(request):
     if request.method == "GET":
@@ -64,7 +65,7 @@ def coords(request):
                 AISSentence(nmea_sentence.encode("utf-8")).decode().asdict()
             )
             decoded_message = _convert_enum_to_string(decoded_message)
-            current_datetime = datetime.now()
+            current_datetime = datetime.now(madrid_timezone)
 
             formatted_date = current_datetime.strftime(
                 "%d-%m-%Y"
