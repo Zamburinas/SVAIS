@@ -5,95 +5,105 @@ from config import *
 from scipy.stats import chi2
 import json
 from datetime import datetime, timedelta
-import math
+from pyais.messages import AISSentence
+from datetime import datetime
 # Create your views here.
 
+db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
 
 
 def coords(request):
-    if request.method == 'GET':
-        db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
+    if request.method == "GET":
         pipeline = [
             {
-                '$sort': {'BaseDateTime': -1}  # Ordenar por BaseDateTime en orden descendente
+                "$sort": {
+                    "BaseDateTime": -1
+                }  # Ordenar por BaseDateTime en orden descendente
             },
             {
-                '$group': {
-                    '_id': '$MMSI',
-                    'MMSI': {'$first': '$MMSI'}, 
-                    'LAT': {'$first': '$LAT'}, 
-                    'LON': {'$first': '$LON'} 
+                "$group": {
+                    "_id": "$MMSI",
+                    "MMSI": {"$first": "$MMSI"},
+                    "LAT": {"$first": "$LAT"},
+                    "LON": {"$first": "$LON"},
                 }
-            }
+            },
         ]
 
         resultados = list(db[Database.COORDS.value].aggregate((pipeline)))
-        
+        resultados_filtered = []
         for item in resultados:
-            item['_id'] = str(item['_id'])
+            if not any(value is None for value in item.values()):
+                item["_id"] = str(item["_id"])
+                resultados_filtered.append(item)
 
-        radiogonos=[
-            (43.6728903,-7.8391903) ,
-            (56.130366,-106.346771) ,
-            (-34.61315,-58.37723) 
+        radiogonos = [
+            (43.6728903, -7.8391903),
+            (56.130366, -106.346771),
+            (-34.61315, -58.37723),
         ]
+        return JsonResponse({"boats": resultados_filtered, "radiogonos": radiogonos})
 
-        return JsonResponse({"boats": json.dumps(resultados), "radiogonos": radiogonos})
+    elif request.method == "POST":
+        data = json.loads(request.body)
+        nmea_sentence = data.get("nmea", None)
+        if nmea_sentence is None:
+            return JsonResponse({"msg": "Wrong message format"}, status=400)
+        try:
+            decoded_message = (
+                AISSentence(nmea_sentence.encode("utf-8")).decode().asdict()
+            )
+            decoded_message = _convert_enum_to_string(decoded_message)
+            current_datetime = datetime.now()
 
-    elif request.method == 'POST':
-        #En funcion del barco seleccionado devuelve los datos de la elipse 
-        print("as")
+            formatted_date = current_datetime.strftime("%d-%m-%Y")  # Day-month-year format
+            formatted_time = current_datetime.strftime("%H:%M:%S")  # Hour:minute:second format
+            
+            time_received = {
+                'day': formatted_date,
+                'hour': formatted_time
+            }
+
+            decoded_message.update(time_received)
+            db[Database.COORDS.value].insert_one(decoded_message)
+
+        except:
+            return JsonResponse({"msg": "Wrong message format"}, status=400)
+        
+        return JsonResponse({"msg": "Coord received succesfully."})
     else:
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
 def get_route(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         body = json.loads(request.body)
         min_distance = 0.0005
-        db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
 
         pipeline = [
-            {
-                "$match": {
-                    "MMSI": body['MMSI']
-                }
-            },
-            {
-                "$sort": {
-                    "BaseDateTime": 1
-                }
-            },
-            {
-                "$project": {
-                    "_id": 0,
-                    "LAT": 1,
-                    "LON": 1,
-                    "BaseDateTime": 1,
-                    "SOG": 1
-                }
-            }
+            {"$match": {"MMSI": body["MMSI"]}},
+            {"$sort": {"BaseDateTime": 1}},
+            {"$project": {"_id": 0, "LAT": 1, "LON": 1, "BaseDateTime": 1, "SOG": 1}},
         ]
-        
+
         resultado = list(db[Database.COORDS.value].aggregate(pipeline))
 
-        filtered_result=filtrar_coordenadas(resultado, min_distance)
+        filtered_result = filtrar_coordenadas(resultado, min_distance)
 
-        final_routes= detect_new_routes(filtered_result)
+        final_routes = detect_new_routes(filtered_result)
 
         response_data = []
 
         for route in final_routes:
-            route_data = [(doc["LAT"], doc["LON"], doc["BaseDateTime"], doc["SOG"]) for doc in route]
+            route_data = [
+                (doc["LAT"], doc["LON"], doc["BaseDateTime"], doc["SOG"])
+                for doc in route
+            ]
             response_data.append({"route": route_data})
 
         return JsonResponse(response_data, safe=False)
     else:
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-
-
-
+        return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
 def detect_new_routes(resultado):
@@ -101,18 +111,24 @@ def detect_new_routes(resultado):
     current_route = []
 
     for i in range(len(resultado)):
-        tiempo_actual = datetime.strptime(resultado[i]["BaseDateTime"], "%Y-%m-%dT%H:%M:%S")
+        tiempo_actual = datetime.strptime(
+            resultado[i]["BaseDateTime"], "%Y-%m-%dT%H:%M:%S"
+        )
 
         if i > 0:
-            tiempo_anterior = datetime.strptime(resultado[i-1]["BaseDateTime"], "%Y-%m-%dT%H:%M:%S")
+            tiempo_anterior = datetime.strptime(
+                resultado[i - 1]["BaseDateTime"], "%Y-%m-%dT%H:%M:%S"
+            )
             tiempo_diff = tiempo_actual - tiempo_anterior
         else:
             tiempo_diff = timedelta(minutes=0)
-        
+
         if tiempo_diff > timedelta(minutes=60):
             if current_route:
                 routes.append(current_route)
-                current_route = [current_route[-1]]  # Comenzar la nueva ruta con el último punto de la ruta anterior
+                current_route = [
+                    current_route[-1]
+                ]  # Comenzar la nueva ruta con el último punto de la ruta anterior
 
         current_route.append(resultado[i])
 
@@ -120,10 +136,6 @@ def detect_new_routes(resultado):
         routes.append(current_route)
 
     return routes
-
-
-
-
 
 
 def filtrar_coordenadas(resultado, min_distance):
@@ -136,22 +148,26 @@ def filtrar_coordenadas(resultado, min_distance):
     puntos_en_movimiento = []
 
     for i in range(1, len(resultado)):
-        lat_diff = abs(resultado[i]["LAT"] - resultado[i-1]["LAT"])
-        lon_diff = abs(resultado[i]["LON"] - resultado[i-1]["LON"])
+        lat_diff = abs(resultado[i]["LAT"] - resultado[i - 1]["LAT"])
+        lon_diff = abs(resultado[i]["LON"] - resultado[i - 1]["LON"])
 
         if lat_diff > min_distance or lon_diff > min_distance:
             if movimiento_iniciado:
                 puntos_en_movimiento.append(resultado[i])
             else:
                 # Guardar el primer punto de cuando estuvo parado
-                primer_punto_parado = resultado[i-1]
+                primer_punto_parado = resultado[i - 1]
                 movimiento_iniciado = True
-                puntos_en_movimiento.append(resultado[i-1])  # Agregar el último punto parado
-                puntos_en_movimiento.append(resultado[i])  # Agregar el primer punto en movimiento
+                puntos_en_movimiento.append(
+                    resultado[i - 1]
+                )  # Agregar el último punto parado
+                puntos_en_movimiento.append(
+                    resultado[i]
+                )  # Agregar el primer punto en movimiento
         else:
             if movimiento_iniciado:
                 # Guardar el último punto que estuvo parado
-                ultimo_punto_parado = resultado[i-1]
+                ultimo_punto_parado = resultado[i - 1]
                 movimiento_iniciado = False
                 filtered_result.append(primer_punto_parado)
                 filtered_result.extend(puntos_en_movimiento)
@@ -171,130 +187,113 @@ def filtrar_coordenadas(resultado, min_distance):
     return filtered_result
 
 
-
 def boat_names(request):
-    if request.method == 'GET':
-        
-        #Aquí consultar base de datos para que devuelva información de los datos, como el nombre y el MMSI
-        db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
+    if request.method == "GET":
+
+        # Aquí consultar base de datos para que devuelva información de los datos, como el nombre y el MMSI
 
         pipeline = [
-            {
-                "$group": {
-                    "_id": "$MMSI",
-                    "VesselName": {"$first": "$VesselName"}
-                }
-            },
-            {
-                "$project": {
-                    "_id": 0,
-                    "MMSI": "$_id",
-                    "VesselName": 1
-                }
-            }
+            {"$group": {"_id": "$MMSI", "VesselName": {"$first": "$VesselName"}}},
+            {"$project": {"_id": 0, "MMSI": "$_id", "VesselName": 1}},
         ]
 
         resultados = list(db[Database.COORDS.value].aggregate(pipeline))
 
         return JsonResponse(json.dumps(resultados), safe=False)
-    if request.method == 'POST': 
-        db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
+    if request.method == "POST":
+
         body = json.loads(request.body)
 
-        print(body)
         query = body
         pipeline = [
-                {
-                    "$match": query  # Utiliza la consulta proporcionada para filtrar los resultados
-                },
-                {
-                    "$group": {
-                        "_id": "$VesselName"  
-                    }
-                },
-                {
-                    "$project": {
-                        "_id": 0,  # Excluye el campo "_id"
-                        "VesselName": "$_id"  # Renombra "_id" a "VesselName"
-                    }
+            {
+                "$match": query  # Utiliza la consulta proporcionada para filtrar los resultados
+            },
+            {"$group": {"_id": "$VesselName"}},
+            {
+                "$project": {
+                    "_id": 0,  # Excluye el campo "_id"
+                    "VesselName": "$_id",  # Renombra "_id" a "VesselName"
                 }
-            ]
+            },
+        ]
         resultados = db[Database.COORDS.value].aggregate(pipeline)
         vessel_names_set = set()
         for resultado in resultados:
             vessel_names_set.add(resultado["VesselName"])
 
         vessel_names_unique = list(vessel_names_set)
-        print(len(vessel_names_unique))
         return JsonResponse(json.dumps(vessel_names_unique), safe=False)
     else:
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
+        return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
 
 def getBoatInfo(request):
-    if request.method == 'POST': 
+    if request.method == "POST":
         body = json.loads(request.body)
-        db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
+
         pipeline = [
+            {"$match": {"MMSI": body}},  # Filtrar por el MMSI concreto
             {
-                '$match': {'MMSI': body}  # Filtrar por el MMSI concreto
+                "$sort": {
+                    "BaseDateTime": -1
+                }  # Ordenar por BaseDateTime en orden descendente
             },
             {
-                '$sort': {'BaseDateTime': -1}  # Ordenar por BaseDateTime en orden descendente
-            },
-            {
-                '$group': {
-                    '_id': '$MMSI',
-                    'data': {'$first': '$$ROOT'}  # Tomar el primer documento después de ordenar
+                "$group": {
+                    "_id": "$MMSI",
+                    "data": {
+                        "$first": "$$ROOT"
+                    },  # Tomar el primer documento después de ordenar
                 }
-            }
+            },
         ]
         resultados = list(db[Database.COORDS.value].aggregate(pipeline))
-        status= int(resultados[0]['data']['Status'])
-        VesselType= str(int(resultados[0]['data']['VesselType']))
-        pipeline = [
-            {
-                '$match': {'status': status}  # Filtrar por el valor específico del campo 'status'
-            }
-        ]
-        Status_aux= list(db[Database.STATUS.value].aggregate(pipeline))
-        resultados[0]['data']['Status']= Status_aux[0]['description']
-        pipeline = [
-            {
-                '$match': {'vesselType': VesselType}  
-            }
-        ]
-       
-        VesselType_aux= list(db[Database.VESSELTYPE.value].aggregate(pipeline))
+        if not resultados:
+            return JsonResponse({"error": "Boat not found"}, status=400)
         
-        resultados[0]['data']['VesselType']= VesselType_aux[0]['description']
+        resultados = resultados[0]
+        resultados["data"]["VesselType"] = 'Unkown'
+        resultados["data"]["VesselName"] = 'Unkown'
 
-        for area in resultados:
-            del area['_id']
-            del area['data']['_id']
+        boat_info = db[Database.COORDS.value].find_one({"MMSI": resultados["data"]['MMSI'], 'MSG_TYPE': 5})
+        if boat_info:
+            resultados["data"]["VesselType"] = boat_info['VesselType']
+            resultados["data"]["VesselName"] = boat_info['Name']
 
 
-        item = str(resultados[0])
-        return JsonResponse(json.loads(item.replace("'", '"')), safe=False)
+        del resultados["_id"]
+        del resultados["data"]["_id"]
+
+        return JsonResponse(resultados, safe=False)
     else:
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-
+        return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
 def getProtectedAreas(request):
-    if request.method == 'GET':
-        db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
-        areas = list(db[Database.AREAS.value].find())  # Convertir el resultado a una lista de documentos
-        
+    if request.method == "GET":
+
+        areas = list(
+            db[Database.AREAS.value].find()
+        )  # Convertir el resultado a una lista de documentos
+
         # Eliminar el campo '_id' de cada documento
         for area in areas:
-            del area['_id']
-        
-        return JsonResponse(areas, safe=False) 
-        
-    else: 
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
+            del area["_id"]
 
+        return JsonResponse(areas, safe=False)
+
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+def _convert_enum_to_string(data: dict):
+    converted_data = {}
+    for key, value in data.items():
+        if isinstance(value, Enum):
+            value = value.name
+        elif isinstance(value, bytes):
+            value = int.from_bytes(value)
+        converted_data[key.upper()] = value
+    return converted_data

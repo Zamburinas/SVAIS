@@ -47,7 +47,7 @@ async function initializeMapAndLocator() {
   let coords = await helpers.getAllCoords();
   if(coords){
     coorGoniometros=coords.radiogonos;
-    boats =JSON.parse(coords.boats);
+    boats =coords.boats;
   }
   Areas = await helpers.getProtectedAreas();
       
@@ -81,7 +81,6 @@ async function initializeMapAndLocator() {
   boats.forEach(boat => {
 
     
-    
     const marker = L.marker([boat.LAT,boat.LON], { icon: boatIcon }).addTo(map);
 
     marker.on('click', async() => {
@@ -97,17 +96,14 @@ async function initializeMapAndLocator() {
         currentLines = [];
       }
       let aux= await helpers.getBoatInfo(boat.MMSI);
-      const date = new Date(aux.data.BaseDateTime);
-      const formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
-      const formattedTime = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
 
       var popupContent = `<div class="popup-content">
                                 <span class="label">Nombre:</span> <span class="boat-name">${aux.data.VesselName}</span><br>
                                 <span class="label">Vessel Type:</span> <span class="vessel-type">${aux.data.VesselType}</span><br>
                                 <span class="label">MMSI:</span> <span class="mmsi">${aux.data.MMSI}</span><br>
-                                <span class="label">Fecha:</span> <span class="date">${formattedDate}</span><br>
-                                <span class="label">Hora:</span> <span class="time">${formattedTime}</span><br>
-                                <span class="label">Estado:</span> <span class="status">${aux.data.Status}</span><br>
+                                <span class="label">Fecha:</span> <span class="date">${aux.data.day}</span><br>
+                                <span class="label">Hora:</span> <span class="time">${aux.data.hour}</span><br>
+                                <span class="label">Estado:</span> <span class="status">${aux.data.STATUS}</span><br>
                                 <span class="label">Latitud:</span> <span class="latitude">${aux.data.LAT}</span><br>
                                 <span class="label">Longitud:</span> <span class="longitude">${aux.data.LON}</span><br>
                               </div>`;
