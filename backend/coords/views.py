@@ -48,14 +48,14 @@ def coords(request):
 
     elif request.method == "POST":
         data = json.loads(request.body)
-        email = data.get('email')
+        email = data.get("email")
         if not email:
             return JsonResponse({"msg": "Please provide a valid email."}, status=400)
-        
+
         credentials = get_credentials(email=email)
         if not credentials:
             return JsonResponse({"msg": "Please provide a valid email."}, status=400)
-        
+
         nmea_sentence = data.get("nmea", None)
         if nmea_sentence is None:
             return JsonResponse({"msg": "Wrong message format"}, status=400)
@@ -73,7 +73,11 @@ def coords(request):
                 "%H:%M:%S"
             )  # Hour:minute:second format
 
-            time_received = {"day": formatted_date, "hour": formatted_time}
+            time_received = {
+                "day": formatted_date,
+                "hour": formatted_time,
+                "BaseDateTime": f'{formatted_date}T{formatted_time}',
+            }
 
             decoded_message.update(time_received)
             db[Database.COORDS.value].insert_one(decoded_message)
@@ -94,20 +98,25 @@ def get_route(request):
         pipeline = [
             {"$match": {"MMSI": body["MMSI"]}},
             {"$sort": {"BaseDateTime": 1}},
-            {"$project": {"_id": 0, "LAT": 1, "LON": 1, "BaseDateTime": 1, "SOG": 1}},
+            {"$project": {"_id": 0, "LAT": 1, "LON": 1, "BaseDateTime": 1, "SPEED": 1}},
         ]
 
         resultado = list(db[Database.COORDS.value].aggregate(pipeline))
-
-        filtered_result = filtrar_coordenadas(resultado, min_distance)
+        resultado_filtered = []
+        for i in resultado:
+            if i.get('LAT', None) is not None:
+                resultado_filtered.append(i)
+        
+        filtered_result = filtrar_coordenadas(resultado_filtered, min_distance)
 
         final_routes = detect_new_routes(filtered_result)
 
         response_data = []
 
         for route in final_routes:
+            print(route)
             route_data = [
-                (doc["LAT"], doc["LON"], doc["BaseDateTime"], doc["SOG"])
+                (doc.get("LAT", None), doc.get("LON", None), doc.get("BaseDateTime", None), doc.get("SPEED", None))
                 for doc in route
             ]
             response_data.append({"route": route_data})
@@ -123,12 +132,12 @@ def detect_new_routes(resultado):
 
     for i in range(len(resultado)):
         tiempo_actual = datetime.strptime(
-            resultado[i]["BaseDateTime"], "%Y-%m-%dT%H:%M:%S"
+            resultado[i]["BaseDateTime"], "%d-%m-%YT%H:%M:%S"
         )
 
         if i > 0:
             tiempo_anterior = datetime.strptime(
-                resultado[i - 1]["BaseDateTime"], "%Y-%m-%dT%H:%M:%S"
+                resultado[i - 1]["BaseDateTime"], "%d-%m-%YT%H:%M:%S"
             )
             tiempo_diff = tiempo_actual - tiempo_anterior
         else:
@@ -204,8 +213,8 @@ def boat_names(request):
         # Aquí consultar base de datos para que devuelva información de los datos, como el nombre y el MMSI
 
         pipeline = [
-            {"$group": {"_id": "$MMSI", "VesselName": {"$first": "$VesselName"}}},
-            {"$project": {"_id": 0, "MMSI": "$_id", "VesselName": 1}},
+            {"$group": {"_id": "$MMSI", "SHIPNAME": {"$first": "$SHIPNAME"}}},
+            {"$project": {"_id": 0, "MMSI": "$_id", "SHIPNAME": 1}},
         ]
 
         resultados = list(db[Database.COORDS.value].aggregate(pipeline))
@@ -220,18 +229,18 @@ def boat_names(request):
             {
                 "$match": query  # Utiliza la consulta proporcionada para filtrar los resultados
             },
-            {"$group": {"_id": "$VesselName"}},
+            {"$group": {"_id": "$SHIPNAME"}},
             {
                 "$project": {
                     "_id": 0,  # Excluye el campo "_id"
-                    "VesselName": "$_id",  # Renombra "_id" a "VesselName"
+                    "SHIPNAME": "$_id",  # Renombra "_id" a "VesselName"
                 }
             },
         ]
         resultados = db[Database.COORDS.value].aggregate(pipeline)
         vessel_names_set = set()
         for resultado in resultados:
-            vessel_names_set.add(resultado["VesselName"])
+            vessel_names_set.add(resultado["SHIPNAME"])
 
         vessel_names_unique = list(vessel_names_set)
         return JsonResponse(json.dumps(vessel_names_unique), safe=False)
