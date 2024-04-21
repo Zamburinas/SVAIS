@@ -7,6 +7,8 @@ import json
 from datetime import datetime, timedelta
 from pyais.messages import AISSentence
 from datetime import datetime
+from users.views import get_credentials
+
 # Create your views here.
 
 db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
@@ -46,6 +48,14 @@ def coords(request):
 
     elif request.method == "POST":
         data = json.loads(request.body)
+        email = data.get('email')
+        if not email:
+            return JsonResponse({"msg": "Please provide a valid email."}, status=400)
+        
+        credentials = get_credentials(email=email)
+        if not credentials:
+            return JsonResponse({"msg": "Please provide a valid email."}, status=400)
+        
         nmea_sentence = data.get("nmea", None)
         if nmea_sentence is None:
             return JsonResponse({"msg": "Wrong message format"}, status=400)
@@ -56,20 +66,21 @@ def coords(request):
             decoded_message = _convert_enum_to_string(decoded_message)
             current_datetime = datetime.now()
 
-            formatted_date = current_datetime.strftime("%d-%m-%Y")  # Day-month-year format
-            formatted_time = current_datetime.strftime("%H:%M:%S")  # Hour:minute:second format
-            
-            time_received = {
-                'day': formatted_date,
-                'hour': formatted_time
-            }
+            formatted_date = current_datetime.strftime(
+                "%d-%m-%Y"
+            )  # Day-month-year format
+            formatted_time = current_datetime.strftime(
+                "%H:%M:%S"
+            )  # Hour:minute:second format
+
+            time_received = {"day": formatted_date, "hour": formatted_time}
 
             decoded_message.update(time_received)
             db[Database.COORDS.value].insert_one(decoded_message)
 
         except:
             return JsonResponse({"msg": "Wrong message format"}, status=400)
-        
+
         return JsonResponse({"msg": "Coord received succesfully."})
     else:
         return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -228,7 +239,6 @@ def boat_names(request):
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
-
 def getBoatInfo(request):
     if request.method == "POST":
         body = json.loads(request.body)
@@ -252,16 +262,29 @@ def getBoatInfo(request):
         resultados = list(db[Database.COORDS.value].aggregate(pipeline))
         if not resultados:
             return JsonResponse({"error": "Boat not found"}, status=400)
-        
+
         resultados = resultados[0]
-        resultados["data"]["VesselType"] = 'Unkown'
-        resultados["data"]["VesselName"] = 'Unkown'
 
-        boat_info = db[Database.COORDS.value].find_one({"MMSI": resultados["data"]['MMSI'], 'MSG_TYPE': 5})
+        resultados["data"]["VesselType"] = "Desconocido"
+        resultados["data"]["VesselName"] = "Desconocido"
+
+        try:
+            Status_aux = db[Database.STATUS.value].find_one(
+                {"status": resultados["data"]["STATUS"]}
+            )
+            resultados["data"]["STATUS"] = Status_aux["description"]
+        except:
+            resultados["data"]["STATUS"] = "Desconocido"
+
+        boat_info = db[Database.COORDS.value].find_one(
+            {"MMSI": resultados["data"]["MMSI"], "MSG_TYPE": 5}
+        )
         if boat_info:
-            resultados["data"]["VesselType"] = boat_info['VesselType']
-            resultados["data"]["VesselName"] = boat_info['Name']
-
+            VesselType_aux = db[Database.VESSELTYPE.value].find_one(
+                {"vesselType": {"$regex": str(boat_info["SHIP_TYPE"])}}
+            )
+            resultados["data"]["VesselType"] = VesselType_aux["description"]
+            resultados["data"]["VesselName"] = boat_info["SHIPNAME"]
 
         del resultados["_id"]
         del resultados["data"]["_id"]
@@ -292,7 +315,7 @@ def _convert_enum_to_string(data: dict):
     converted_data = {}
     for key, value in data.items():
         if isinstance(value, Enum):
-            value = value.name
+            value = value.value
         elif isinstance(value, bytes):
             value = int.from_bytes(value)
         converted_data[key.upper()] = value

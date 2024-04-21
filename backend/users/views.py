@@ -30,7 +30,7 @@ def login(request):
         if email is None or password is None or not _check_credentials(email, password):
             return JsonResponse({"msg": "Email or password not valid"}, status=400)
 
-        user_data = _get_credentials(email)
+        user_data = get_credentials(email)
         if user_data["two_factor_auth"]:
             if tfa is None:
                 return JsonResponse(
@@ -71,7 +71,7 @@ def register(request):
         if not _is_valid_email(body["email"]):
             return JsonResponse({"msg": "Wrong email format."}, status=400)
 
-        user = _get_credentials(body["email"])
+        user = get_credentials(body["email"])
         if user:
             return JsonResponse({"msg": "User already exist."}, status=400)
 
@@ -163,7 +163,7 @@ def checkToken(request):
     token = body.get("token", None)
     username = Authenticate.decode_auth_token(token)
 
-    if username and _get_credentials(username):
+    if username and get_credentials(username):
         return JsonResponse({"state": "OK", "username": username})
     else:
         return HttpResponse(status=401)
@@ -174,12 +174,12 @@ def _is_valid_email(email):
     return re.match(pattern, email) is not None
 
 
-def _get_credentials(email):
+def get_credentials(email):
     return collection.find_one({"email": email})
 
 
 def _check_credentials(email, password):
-    user = _get_credentials(email)
+    user = get_credentials(email)
     if user and user["password"] == Authenticate.hash_password(password):
         return True
 
@@ -187,7 +187,7 @@ def _check_credentials(email, password):
 
 
 def _two_factor_auth(user, face):
-    user = _get_credentials(user)
+    user = get_credentials(user)
     if not user:
         return False
     user_encoded = user["tfa_enc"]

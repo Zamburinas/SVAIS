@@ -99,7 +99,7 @@ async function initializeMapAndLocator() {
 
       var popupContent = `<div class="popup-content">
                                 <span class="label">Nombre:</span> <span class="boat-name">${aux.data.VesselName}</span><br>
-                                <span class="label">Vessel Type:</span> <span class="vessel-type">${aux.data.VesselType}</span><br>
+                                <span class="label">Tipo de Barco:</span> <span class="vessel-type">${aux.data.VesselType}</span><br>
                                 <span class="label">MMSI:</span> <span class="mmsi">${aux.data.MMSI}</span><br>
                                 <span class="label">Fecha:</span> <span class="date">${aux.data.day}</span><br>
                                 <span class="label">Hora:</span> <span class="time">${aux.data.hour}</span><br>
