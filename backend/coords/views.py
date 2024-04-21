@@ -13,7 +13,8 @@ from users.views import get_credentials
 # Create your views here.
 
 db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
-madrid_timezone = pytz.timezone('Europe/Madrid')
+madrid_timezone = pytz.timezone("Europe/Madrid")
+
 
 def coords(request):
     if request.method == "GET":
@@ -79,8 +80,8 @@ def coords(request):
                 "hour": formatted_time,
                 "BaseDateTime": f"{formatted_date}T{formatted_time}",
             }
-            if decoded_message.get('SHIPNAME', None) is None:
-                time_received['SHIPNAME'] = get_boat_name(decoded_message.get('MMSI'))
+            if decoded_message.get("SHIPNAME", None) is None:
+                time_received["SHIPNAME"] = get_boat_name(decoded_message.get("MMSI"))
 
             decoded_message.update(time_received)
             db[Database.COORDS.value].insert_one(decoded_message)
@@ -222,8 +223,15 @@ def boat_names(request):
         # Aquí consultar base de datos para que devuelva información de los datos, como el nombre y el MMSI
 
         pipeline = [
-            {"$group": {"_id": "$MMSI", "SHIPNAME": {"$first": "$SHIPNAME"}}},
-            {"$project": {"_id": 0, "MMSI": "$_id", "SHIPNAME": 1}},
+            {
+                "$match": {"SHIPNAME": {"$ne": "Desconocido"}}
+            },  # Filter out documents where SHIPNAME is "Desconocido"
+            {
+                "$group": {"_id": "$MMSI", "SHIPNAME": {"$first": "$SHIPNAME"}}
+            },  # Group by MMSI and select first non-"Desconocido" SHIPNAME
+            {
+                "$project": {"_id": 0, "MMSI": "$_id", "SHIPNAME": 1}
+            },  # Project the fields
         ]
 
         resultados = list(db[Database.COORDS.value].aggregate(pipeline))
@@ -258,7 +266,11 @@ def boat_names(request):
 
 def get_boat_name(mmsi):
     boat_info = db[Database.COORDS.value].find({"MMSI": mmsi, "MSG_TYPE": 5})
-    unique_name = {boat["SHIPNAME"] for boat in boat_info if boat["SHIPNAME"].lower() != 'desconocido'}
+    unique_name = {
+        boat["SHIPNAME"]
+        for boat in boat_info
+        if boat["SHIPNAME"].lower() != "desconocido"
+    }
     if unique_name:
         return unique_name[0]
     return "Desconocido"
