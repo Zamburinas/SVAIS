@@ -6,7 +6,7 @@ from pymongo import MongoClient
 from config import *
 from scipy.stats import chi2
 from datetime import datetime, timedelta
-from pyais.messages import AISSentence
+from pyais import decode
 from datetime import datetime
 from users.views import get_credentials
 
@@ -57,14 +57,12 @@ def coords(request):
         credentials = get_credentials(email=email)
         if not credentials:
             return JsonResponse({"msg": "Please provide a valid email."}, status=400)
-
         nmea_sentence = data.get("nmea", None)
         if nmea_sentence is None:
             return JsonResponse({"msg": "Wrong message format"}, status=400)
         try:
-            decoded_message = (
-                AISSentence(nmea_sentence.encode("utf-8")).decode().asdict()
-            )
+            nmea_sentence = [nmea.encode("utf-8") for nmea in nmea_sentence.split("\n")]
+            decoded_message = decode(*nmea_sentence).asdict()
             decoded_message = _convert_enum_to_string(decoded_message)
             current_datetime = datetime.now(madrid_timezone)
 
@@ -86,7 +84,7 @@ def coords(request):
             decoded_message.update(time_received)
             db[Database.COORDS.value].insert_one(decoded_message)
 
-        except:
+        except Exception as e:
             return JsonResponse({"msg": "Wrong message format"}, status=400)
 
         return JsonResponse({"msg": "Coord received succesfully."})
@@ -272,10 +270,18 @@ def get_boat_name(mmsi):
         if boat["SHIPNAME"].lower() != "desconocido"
     }
     if unique_name:
-        return unique_name[0]
+        return unique_name.pop()
     return "Desconocido"
 
-
+def get_boat_type(mmsi):
+    boat_info = db[Database.COORDS.value].find_one({"MMSI": mmsi, "MSG_TYPE": 5})
+    if boat_info:
+        VesselType_aux = db[Database.VESSELTYPE.value].find_one(
+                {"vesselType": {"$regex": str(boat_info["SHIP_TYPE"])}}
+            )
+        return VesselType_aux["description"]
+    return "Desconocido"
+    
 def getBoatInfo(request):
     if request.method == "POST":
         body = json.loads(request.body)
@@ -302,9 +308,8 @@ def getBoatInfo(request):
 
         resultados = resultados[0]
 
-        resultados["data"]["VesselType"] = "Desconocido"
-        resultados["data"]["VesselName"] = "Desconocido"
-
+        resultados["data"]["VesselType"] = get_boat_type(resultados["data"]["MMSI"])
+        resultados["data"]["VesselName"] = get_boat_name(resultados["data"]["MMSI"])
         try:
             Status_aux = db[Database.STATUS.value].find_one(
                 {"status": resultados["data"]["STATUS"]}
@@ -312,16 +317,6 @@ def getBoatInfo(request):
             resultados["data"]["STATUS"] = Status_aux["description"]
         except:
             resultados["data"]["STATUS"] = "Desconocido"
-
-        boat_info = db[Database.COORDS.value].find_one(
-            {"MMSI": resultados["data"]["MMSI"], "MSG_TYPE": 5}
-        )
-        if boat_info:
-            VesselType_aux = db[Database.VESSELTYPE.value].find_one(
-                {"vesselType": {"$regex": str(boat_info["SHIP_TYPE"])}}
-            )
-            resultados["data"]["VesselType"] = VesselType_aux["description"]
-            resultados["data"]["VesselName"] = boat_info["SHIPNAME"]
 
         del resultados["_id"]
         del resultados["data"]["_id"]
