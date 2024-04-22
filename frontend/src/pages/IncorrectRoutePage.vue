@@ -79,7 +79,7 @@
   async function handleBoatSelection(boat) {
       try {
         const response = await helpers.getBoatRoute({ "MMSI": boat.MMSI });
-  
+
         let alertCount = 0; // Contador de alertas
   
         const routeSegments = []; // Almacenar segmentos de la ruta con problemas

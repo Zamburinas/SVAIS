@@ -12,7 +12,7 @@
       >
         <div class="content">
           <h4 class="title">{{ box.title }}</h4>
-          <img :src="box.image" alt="Image" style="width: 250px; height: 230px; margin-bottom:2%">
+          <img :src="box.image" alt="Image" class="box-image">
         </div>
       </div>
     </div>
@@ -42,19 +42,21 @@ export default {
 
 <style scoped>
 .box {
-  width: 45%;
-  height: 50%;
+  width: 47%; /* Dos columnas en ordenador */
+  height: auto;
   background-color: #f0f0f0; /* Color gris muy claro */
   border: 1px solid #ccc;
   transition: all 0.3s ease;
   cursor: pointer;
   display: inline-block;
-  margin: 10px;
+  box-sizing: border-box;
+  padding: 10px;
+  margin-left:0;
+  margin-right:2%;
 }
 
 .box:hover {
   background-color: #d0d0d0; /* Un poco más oscuro al pasar el ratón */
-  transform: scale(1.05);
 }
 
 .box.hovered {
@@ -64,9 +66,21 @@ export default {
 .content {
   text-align: center;
 }
+
+.box-image {
+  max-width: 100%;
+  height: 220px;
+}
 .q-gutter-md {
   margin-top: 2%;
   margin-left: 2%;
-  align-items: center;
+}
+
+/* Cuatro filas en móvil */
+@media screen and (max-width: 600px) {
+  .box {
+    width: 100% !important; /* Una columna en móvil */
+    margin-bottom: 10px; /* Espacio entre las cajas */
+  }
 }
 </style>

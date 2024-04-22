@@ -199,10 +199,13 @@ async function initializeMapAndLocator() {
           }
           let semiMajorAxis = 113.5624900059602;
           let semiMinorAxis = 127.04089357908843;
-          let angle = -135.35846661098765;                                                  //Por ahora el centro de la elipse es el propio barco
-          drawEllipse(map, [boatCoordinates[0], boatCoordinates[1]], [boatCoordinates[0], boatCoordinates[1]], semiMajorAxis, semiMinorAxis, angle);
+          let angle = -135.35846661098765; 
+          let random1=(Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
+          let random2= (Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
+                                                           //Por ahora el centro de la elipse es el propio barco
+          drawEllipse(map, [boatCoordinates[0], boatCoordinates[1]], [boatCoordinates[0]+parseFloat(random1), boatCoordinates[1]+parseFloat(random2)], semiMajorAxis, semiMinorAxis, angle);
         }
-      }, 50);
+      });
 
       line.addTo(linesGroup);
 
