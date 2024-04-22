@@ -9,4 +9,5 @@ urlpatterns = [
     path('boat_names', views.boat_names, name='boat_names'), 
     path('getProtectedAreas', views.getProtectedAreas, name='getProtectedAreas'),
     path('boatInfo', views.getBoatInfo, name='boatInfo'),
+    path('decodeFile', views.decode_file, name='decodeFile'),
 ]

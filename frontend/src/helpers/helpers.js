@@ -1,8 +1,8 @@
-const url = 'svais.jbl.mooo.com/api'
+const url = 'localhost:9002/api';
 import { Notify, SessionStorage } from 'quasar';
 
 export async function login(email, password, tfa) {
-  return await fetch(`https://${url}/users/login`, {
+  return await fetch(`http://${url}/users/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -36,7 +36,7 @@ export async function login(email, password, tfa) {
 }
 
 export async function register(userData) {
-  return await fetch(`https://${url}/users/register`, {
+  return await fetch(`http://${url}/users/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -62,7 +62,7 @@ export async function register(userData) {
 }
 
 export async function checkToken() {
-  return await fetch(`https://${url}/users/checkToken`, {
+  return await fetch(`http://${url}/users/checkToken`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -122,7 +122,7 @@ export function pushNotification(color,
 
 
 export async function getAllCoords() {
-  return await fetch(`https://${url}/coords/coords`, {
+  return await fetch(`http://${url}/coords/coords`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json"
@@ -137,7 +137,7 @@ export async function getAllCoords() {
 }
 
 export async function getBoatNames() {
-  return await fetch(`https://${url}/coords/boat_names`, {
+  return await fetch(`http://${url}/coords/boat_names`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json"
@@ -152,7 +152,7 @@ export async function getBoatNames() {
 }
 
 export async function getBoatRoute(boatName) {
-  return await fetch(`https://${url}/coords/get_route`, {
+  return await fetch(`http://${url}/coords/get_route`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -167,7 +167,7 @@ export async function getBoatRoute(boatName) {
 }
 
 export async function getBoatInfo(boatName) {
-  return await fetch(`https://${url}/coords/boatInfo`, {
+  return await fetch(`http://${url}/coords/boatInfo`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -182,7 +182,7 @@ export async function getBoatInfo(boatName) {
 }
 
 export async function getBoats(boatName) {
-  return await fetch(`https://${url}/coords/boat_names`, {
+  return await fetch(`http://${url}/coords/boat_names`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -199,7 +199,7 @@ export async function getBoats(boatName) {
 
 
 export async function getProtectedAreas() {
-  return await fetch(`https://${url}/coords/getProtectedAreas`, {
+  return await fetch(`http://${url}/coords/getProtectedAreas`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json"
@@ -214,7 +214,7 @@ export async function getProtectedAreas() {
 }
 
 export async function sendImageToBackend(imageFile, password) {
-  return await fetch(`https://${url}/users/twoFactorAuth`, {
+  return await fetch(`http://${url}/users/twoFactorAuth`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -280,7 +280,7 @@ export async function takePhoto() {
 }
 
 export async function disableTwoFactor(password) {
-  return await fetch(`https://${url}/users/disableTwoFactor`, {
+  return await fetch(`http://${url}/users/disableTwoFactor`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -306,6 +306,29 @@ export async function disableTwoFactor(password) {
       pushNotification('negative', error.message)
       return false;
     });
+}
+
+export async function uploadFile(formData) {
+  return await fetch(`https://${url}/coords/decodeFile`, {
+    method: "POST",
+    body: formData
+  })
+  .then(async response => {
+    if (!response.ok) {
+      let responseJson = await response.json();
+      let message = responseJson.msg;
+      throw new Error(message);
+    }
+    return response.json();
+  })
+  .then(data => {
+    pushNotification('positive', data.msg, 'top')
+    return data;
+  })
+  .catch(error => {
+    pushNotification('negative', error.message)
+    return {};
+  });
 }
 
 function authenticated() {

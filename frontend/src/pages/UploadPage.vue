@@ -1,36 +1,36 @@
 <template>
   <q-page>
-  <div >
-    
-    
-    <template v-if="!submitted">
-      <!-- Contenido principal -->
-      <div class="container">
-      <label for="images" class="drop-container" id="dropcontainer">
-        <span class="drop-title">Arrastra un archivo (.zip/.rar)</span>
-        o
-        <input type="file" id="images" accept=".zip,.rar" @change="handleFileUpload">
-      </label>
+    <div>
 
-      <!-- Espacio entre los elementos -->
-      <div style="margin-top: 20px;"></div>
 
-      <!-- Botón para enviar el formulario -->
-      <button @click="submitForm" :disabled="!file" class="submit-button">Enviar</button>
+      <template v-if="!submitted">
+        <!-- Contenido principal -->
+        <div class="container">
+          <label for="images" class="drop-container" id="dropcontainer">
+            <span class="drop-title">Arrastra un archivo (.wav/.raw)</span>
+            o
+            <input type="file" id="images" accept=".wav,.raw" @change="handleFileUpload">
+          </label>
 
-      <!-- Espacio entre los elementos -->
-      <div style="margin-top: 20px;"></div>
-    </div>
-    </template>
-    
-    <template v-else>
-      <!-- Botón para volver atrás -->
+          <!-- Espacio entre los elementos -->
+          <div style="margin-top: 20px;"></div>
+
+          <!-- Botón para enviar el formulario -->
+          <button @click="submitForm" :disabled="!file" class="submit-button">Enviar</button>
+
+          <!-- Espacio entre los elementos -->
+          <div style="margin-top: 20px;"></div>
+        </div>
+      </template>
+
+      <template v-else>
+        <!-- Botón para volver atrás -->
         <div class="container-botones">
           <q-btn @click="goBack" class="back-button">Volver atrás</q-btn>
           <q-btn @click="downloadFile" class="download-button">Descargar</q-btn>
         </div>
         <div id="alertBox" class="alert-box"></div>
-        
+
 
         <!-- Botón para abrir el menú desplegable -->
         <q-btn class="menu-button" label="Menu">
@@ -56,12 +56,12 @@
             </q-virtual-scroll>
           </q-menu>
         </q-btn>
-      
-    </template>
-    <div  v-show="showMap" id="map"></div>
-    
-  </div>
-</q-page>
+
+      </template>
+      <div v-show="showMap" id="map"></div>
+
+    </div>
+  </q-page>
 </template>
 
 <script setup>
@@ -77,6 +77,9 @@ const showMap = ref(false);
 let boats = ref([]);
 let filteredBoats = ref([]);
 let alertCount = 0;
+let content = [];
+let coords = [];
+let routes_coords = {};
 let usedColors = new Set();
 let pointMarkers = new Map();
 let markers = new Map(); // Usamos un Map para almacenar los marcadores de barcos
@@ -112,13 +115,10 @@ async function initializeMapAndLocator() {
   L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
     maxZoom: 19,
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    id: 'streets-v12',
-    accessToken: 'pk.eyJ1IjoiYm9id2F0Y2hlcngiLCJhIjoiY2xiMGwwZThrMWg3aTNwcW1mOGRucHh6bSJ9.kNHlmRqkRSxYNeipcKkJhw',
+    id: "streets-v12",
+    accessToken: "pk.eyJ1IjoiYm9id2F0Y2hlcngiLCJhIjoiY2xiMGwwZThrMWg3aTNwcW1mOGRucHh6bSJ9.kNHlmRqkRSxYNeipcKkJhw",
   }).addTo(map);
 
-  let coords = JSON.parse(await helpers.getBoatNames());
-  // Asignar los datos de los barcos a la variable boats
-  console.log(coords)
   boats.value = coords.map(coord => ({
     MMSI: coord.MMSI,
     name: coord.SHIPNAME,
@@ -130,7 +130,6 @@ async function initializeMapAndLocator() {
 
 
 const downloadFile = () => {
-  const content = 'Cambiar por json backend'; // Contenido del archivo
   const fileName = 'file.json'; // Nombre del archivo
 
   // Crear un objeto Blob con el contenido y el tipo de archivo
@@ -151,7 +150,7 @@ const downloadFile = () => {
 async function handleBoatSelection(boat) {
   if (boat.checked) {
     try {
-      const response = await helpers.getBoatRoute({ "MMSI": boat.MMSI });
+      const response = routes_coords[boat.MMSI];
 
       let alertCount = 0; // Contador de alertas
 
@@ -223,7 +222,7 @@ async function handleBoatSelection(boat) {
 
       if (alertCount !== 0) {
         helpers.pushNotification('negative', 'Este barco no está en la posición que reporta');
-        
+
       } else {
         helpers.pushNotification('positive', 'Este barco está en la posición que reporta');
       }
@@ -363,19 +362,31 @@ const handleFileUpload = (event) => {
 }
 
 // Función para enviar el formulario
-const submitForm = () => {
+const submitForm = async () => {
   // Aquí puedes realizar cualquier acción que desees al enviar el formulario
-  console.log("Formulario enviado!");
+  let formData = new FormData();
+  formData.append("file", file.value);
+  let data = await helpers.uploadFile(formData);
+  if (!data) {
+    return
+  }
+
+  content = JSON.stringify(data.json);
   submitted.value = true; // Cambia el estado a enviado
+  coords = data.json;
+  routes_coords = data.routes;
   initializeMapAndLocator();
   showMap.value = true;
-
 }
 
 // Función para volver atrás
 const goBack = () => {
   submitted.value = false; // Cambia el estado a no enviado
   showMap.value = false;
+  usedColors = new Set();
+  pointMarkers = new Map();
+  markers = new Map(); // Usamos un Map para almacenar los marcadores de barcos
+  routes = new Map();
 }
 
 // Función para descargar los datos
@@ -385,7 +396,6 @@ const downloadData = () => {
 
 </script>
 <style scoped>
-
 #map {
   width: 100%;
   height: 92vh;
@@ -417,6 +427,7 @@ const downloadData = () => {
   border-radius: 5px;
   z-index: 9999;
 }
+
 .container {
   display: flex;
   flex-direction: column;
@@ -463,13 +474,15 @@ const downloadData = () => {
 
 /* Estilos para el botón de enviar */
 .submit-button {
-  padding: 20px 40px; /* Aumenta el tamaño del botón */
+  padding: 20px 40px;
+  /* Aumenta el tamaño del botón */
   background-color: #1976D2;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 18px; /* Aumenta el tamaño del texto */
+  font-size: 18px;
+  /* Aumenta el tamaño del texto */
   transition: background-color 0.3s;
   width: 100%;
   box-sizing: border-box;
@@ -488,9 +501,10 @@ const downloadData = () => {
   font-size: 14px;
   border-radius: 4px;
   border: none;
-  margin-top:1%;
+  margin-top: 1%;
 }
-.download-button{
+
+.download-button {
   position: absolute;
   z-index: 2;
   padding: 10px 20px;
@@ -501,12 +515,13 @@ const downloadData = () => {
   font-size: 14px;
   border-radius: 4px;
   border: none;
-  margin-top:1%;
-  left:190px;
+  margin-top: 1%;
+  left: 190px;
 }
-.container-botones{
+
+.container-botones {
   display: flex;
-  margin-left:50px;
+  margin-left: 50px;
 }
 
 input[type=file]::file-selector-button {
@@ -523,12 +538,15 @@ input[type=file]::file-selector-button {
 input[type=file]::file-selector-button:hover {
   background: #0d45a5;
 }
+
 .submit-button:disabled {
   background-color: #aaa;
   cursor: not-allowed;
 }
+
 .submit-button:hover:not(:disabled) {
-  background-color: #19588A; /* Color más oscuro al hacer hover */
+  background-color: #19588A;
+  /* Color más oscuro al hacer hover */
 }
 
 /* Estilos para el enlace de descarga */

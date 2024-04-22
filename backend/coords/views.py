@@ -1,5 +1,8 @@
 import json
 import pytz
+import subprocess
+import base64
+import os
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from pymongo import MongoClient
@@ -9,6 +12,11 @@ from datetime import datetime, timedelta
 from pyais import decode
 from datetime import datetime
 from users.views import get_credentials
+from pyais.exceptions import (
+    TooManyMessagesException,
+    MissingMultipartMessageException,
+    InvalidNMEAChecksum,
+)
 
 # Create your views here.
 
@@ -164,7 +172,7 @@ def detect_new_routes(resultado):
     return routes
 
 
-def filtrar_coordenadas(resultado, min_distance):
+def filtrar_coordenadas(resultado, min_distance=0.0005):
     if min_distance == 0 or len(resultado) < 2:
         # Si la distancia mínima es cero o solo hay un punto, devolver solo la última posición
         if resultado:
@@ -273,15 +281,17 @@ def get_boat_name(mmsi):
         return unique_name.pop()
     return "Desconocido"
 
+
 def get_boat_type(mmsi):
     boat_info = db[Database.COORDS.value].find_one({"MMSI": mmsi, "MSG_TYPE": 5})
     if boat_info:
         VesselType_aux = db[Database.VESSELTYPE.value].find_one(
-                {"vesselType": {"$regex": str(boat_info["SHIP_TYPE"])}}
-            )
+            {"vesselType": {"$regex": str(boat_info["SHIP_TYPE"])}}
+        )
         return VesselType_aux["description"]
     return "Desconocido"
-    
+
+
 def getBoatInfo(request):
     if request.method == "POST":
         body = json.loads(request.body)
@@ -352,3 +362,118 @@ def _convert_enum_to_string(data: dict):
             value = int.from_bytes(value)
         converted_data[key.upper()] = value
     return converted_data
+
+
+def decode_file(request):
+    if request.method == "POST":
+        try:
+            # Get the uploaded file from the request
+            uploaded_file = request.FILES['file']
+        except KeyError:
+            return JsonResponse({"msg": "No file uploaded."}, status=400)
+        
+        # Check the file size
+        if uploaded_file.size > 100 * 1024 * 1024:  # 100 MB
+            return JsonResponse({"msg": "File exceeds maximum limit of 100 MB."}, status=400)
+        
+        # Save the file to a temporary location
+        file_path = os.path.join('/tmp', uploaded_file.name)
+        with open(file_path, 'wb') as f:
+            for chunk in uploaded_file.chunks():
+                f.write(chunk)
+        
+        # Determine the file type
+        file_extension = os.path.splitext(uploaded_file.name)[1].lower()
+        convert = {"raw": "file", "wav": "alsa"}
+
+        # Set the paths and parameters for the decoding command
+        ais_path = "~/LPRO/aisdecoder/build/"
+        convert_type = convert.get(file_extension[1:], 'file')
+        command = f"{ais_path}aisdecoder -h 127.0.0.1 -p 12345 -a {convert_type} -f {file_path} -d"
+        
+        # Execute the decoding command
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        output = result.stderr.split("\n")
+        decoded_messages = _decode_messages(output)
+        
+        # Remove the temporary file
+        os.remove(file_path)
+
+        # Return the decoded result as JSON response
+        return JsonResponse(
+            {"msg": "File decoded successfully.", "json": decoded_messages, "routes": _new_routes_json(decoded_messages)},
+            safe=False
+        )
+    else:
+        return JsonResponse({"msg": "Method not allowed"}, status=405)
+
+
+def _decode_messages(messages):
+    nmea_sentence = []
+    decoded_messages = []
+    for message in messages:
+        nmea_sentence.append(message.encode("utf-8"))
+        try:
+            decoded_message = decode(*nmea_sentence).asdict()
+            decoded_message = _convert_enum_to_string(decoded_message)
+            decoded_message["BaseDateTime"] = datetime.now(madrid_timezone).strftime(
+                "%d-%m-%YT%H:%M:%S"
+            )
+            decoded_messages.append(decoded_message)
+            nmea_sentence = []
+        except MissingMultipartMessageException as missing:
+            continue
+        except Exception as e:
+            nmea_sentence = []
+    return decoded_messages
+
+def _add_names(resultado):
+    names = {i['MMSI']: i['SHIPNAME'] for i in resultado if i.get('SHIPNAME', None) is not None}
+    resultado_new = []
+    for i in resultado:
+        if i['MMSI'] in names:
+            i['SHIPNAME'] = names[i['MMSI']]
+        else:
+            i['SHIPNAME'] = 'Desconocido'
+        resultado_new.append(i)
+    return resultado_new
+
+def _group_mmsi(data):
+    grouped = {}
+    for i in data:
+        mmsi = i['MMSI']
+        if mmsi in grouped:
+            grouped[mmsi].append(i)
+        else:
+            grouped[mmsi] = [i]
+    return grouped
+
+def _new_routes_json(resultado):
+    resultado = _add_names(resultado)
+    resultado_filtered = []
+    for i in resultado:
+        if i.get("LAT", None) is not None:
+            resultado_filtered.append(i)
+
+    grouped_data = _group_mmsi(resultado_filtered)
+
+    response_data = {}
+    for key, value in grouped_data.items():
+        response_data_inter = []
+        filtered_result = filtrar_coordenadas(value)
+
+        final_routes = detect_new_routes(filtered_result)
+
+        for route in final_routes:
+            route_data = [
+                (
+                    doc.get("LAT", None),
+                    doc.get("LON", None),
+                    doc.get("BaseDateTime", None),
+                    doc.get("SPEED", None),
+                )
+                for doc in route
+            ]
+            response_data_inter.append({"route": route_data})
+        response_data[key] = response_data_inter
+    return response_data
