@@ -1,4 +1,4 @@
-const url = 'localhost:9002/api';
+const url = 'svais.jbl.mooo.com/api';
 import { Notify, SessionStorage } from 'quasar';
 
 export async function login(email, password, tfa) {
