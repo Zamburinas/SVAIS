@@ -309,7 +309,7 @@ export async function disableTwoFactor(password) {
 }
 
 export async function uploadFile(formData) {
-  return await fetch(`httpss://${url}/coords/decodeFile`, {
+  return await fetch(`https://${url}/coords/decodeFile`, {
     method: "POST",
     body: formData
   })
