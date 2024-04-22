@@ -11,7 +11,7 @@
         @click="handleClick(box)"
       >
         <div class="content">
-          <h4 class="title">{{ box.title }}</h4>
+          <h5 class="title">{{ box.title }}</h5>
           <img :src="box.image" alt="Image" class="box-image">
         </div>
       </div>

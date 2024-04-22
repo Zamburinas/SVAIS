@@ -222,9 +222,10 @@ async function handleBoatSelection(boat) {
       pointMarkers.set(boat, pointMarkersArray);
 
       if (alertCount !== 0) {
-        showAlert("Hay un total de " + alertCount + " tramos sospechosos", true);
+        helpers.pushNotification('negative', 'Este barco no está en la posición que reporta');
+        
       } else {
-        showAlert("Ruta correcta", false);
+        helpers.pushNotification('positive', 'Este barco está en la posición que reporta');
       }
 
 
@@ -270,32 +271,6 @@ function calcularDistancia(lat1, lon1, lat2, lon2, time1, time2) {
   return speedKnots;
 }
 
-function showAlert(message, color) {
-  // Obtener el elemento del div de alerta
-  const alertBox = document.getElementById('alertBox');
-
-  // Establecer el mensaje de alerta en el contenido del div
-  alertBox.textContent = message;
-
-  // Establecer el estilo CSS para el fondo rojo+
-  if (color) {
-    alertBox.style.backgroundColor = '#f44336';
-  } else {
-    alertBox.style.backgroundColor = '#4CAF50';
-  }
-
-
-  // Mostrar el div de alerta
-  alertBox.style.display = 'block';
-
-  // Después de un tiempo, ocultar el div de alerta
-  setTimeout(() => {
-    alertBox.style.display = 'none';
-  }, 5000); // Ocultar la alerta después de 5 segundos (5000 milisegundos)
-
-  // Decrementar el contador de alertas y actualizar el botón
-  alertCount = 0;
-}
 
 function haversineDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // Radio de la Tierra en kilómetros

@@ -10,30 +10,6 @@ import { onMounted, onUnmounted } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { inject } from 'vue';
-const boat = [{
-  MMSI: 338531000,
-  BaseDateTime: "2020-01-01T00:00:02",
-  LAT: 42.2406,
-  LON: -8.7207,
-  SOG: 6.8,
-  COG: 48.8,
-  Heading: 44,
-  VesselName: "GENESIS VIGILANT",
-  IMO: "IMO8973928",
-  CallSign: "WDG9352",
-  VesselType: 31,
-  Status: 0,
-  Length: 30,
-  Width: 10,
-  Draft: 5,
-  Cargo: 31,
-  TransceiverClass: "A"
-}];
-const radiogonos = [
-  (43.6728903, -7.8391903),
-  (56.130366, -106.346771),
-  (-34.61315, -58.37723)
-]
 let Areas;
 let currentEllipse = null;
 let currentLines = [];
@@ -112,7 +88,14 @@ async function initializeMapAndLocator() {
 
         var popup = L.popup().setContent(popupContent);
         marker.bindPopup(popup).openPopup();
-        drawLinesWithAnimation(map, [boat.LAT, boat.LON], coorGoniometros.map(antenna => antenna));
+        await drawLinesWithAnimation(map, [boat.LAT, boat.LON], coorGoniometros.map(antenna => antenna));
+        let semiMajorAxis = 113.5624900059602;
+        let semiMinorAxis = 127.04089357908843;
+        let angle = -135.35846661098765; 
+        let random1=(Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
+        let random2= (Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
+        drawEllipse(map, [boat.LAT, boat.LON], [boat.LAT +parseFloat(random1), boat.LON +parseFloat(random2)], semiMajorAxis, semiMinorAxis, angle);
+  
       });
     });
 
@@ -147,9 +130,10 @@ async function initializeMapAndLocator() {
     const q = isInsideEllipse(boat, center, semiMajorAxis, semiMinorAxis, angle);
     const fillColor = q ? '#00FF00' : '#FF0000';
     if (!q) {
-      showAlert("Este barco no está en la posición que reporta", true);
+      helpers.pushNotification('negative', 'Este barco no está en la posición que reporta');
+      
     } else {
-      showAlert("Este barco está en la posición que reporta", false)
+      helpers.pushNotification('positive', 'Este barco está en la posición que reporta');
     }
 
     currentEllipse = L.polygon(points, {
@@ -175,44 +159,29 @@ async function initializeMapAndLocator() {
 
 
   function drawLinesWithAnimation(map, boatCoordinates, antennaCoordinates) {
-    antennaCoordinates.forEach(antennaCoord => {
-      const latlngs = [antennaCoord, boatCoordinates];
-      const line = L.polyline([], { color: '#444', dashArray: '10, 10', weight: 1 });
+  antennaCoordinates.forEach(antennaCoord => {
+    const latlngs = [antennaCoord, boatCoordinates];
+    const line = L.polyline(latlngs, { color: '#444', dashArray: '10, 10', weight: 1 });
 
-      let currentLatlng = [antennaCoord[0], antennaCoord[1]];
-      let steps = 100;
-      let step = 0;
+    const steps = 100;
+    const deltaLat = (boatCoordinates[0] - antennaCoord[0]) / steps;
+    const deltaLng = (boatCoordinates[1] - antennaCoord[1]) / steps;
 
-      const deltaLat = (boatCoordinates[0] - antennaCoord[0]) / steps;
-      const deltaLng = (boatCoordinates[1] - antennaCoord[1]) / steps;
+    const interpolatedCoords = [];
+    let currentLatlng = [antennaCoord[0], antennaCoord[1]];
 
-      const lineDrawingInterval = setInterval(() => {
-        if (step < steps) {
-          currentLatlng[0] += deltaLat;
-          currentLatlng[1] += deltaLng;
-          line.setLatLngs([antennaCoord, currentLatlng]);
-          step++;
-        } else {
-          clearInterval(lineDrawingInterval);
-          if (currentEllipse) {
-            currentEllipse.remove();
-          }
-          let semiMajorAxis = 113.5624900059602;
-          let semiMinorAxis = 127.04089357908843;
-          let angle = -135.35846661098765; 
-          let random1=(Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
-          let random2= (Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
-                                                           //Por ahora el centro de la elipse es el propio barco
-          drawEllipse(map, [boatCoordinates[0], boatCoordinates[1]], [boatCoordinates[0]+parseFloat(random1), boatCoordinates[1]+parseFloat(random2)], semiMajorAxis, semiMinorAxis, angle);
-        }
-      });
+    for (let step = 0; step <= steps; step++) {
+      interpolatedCoords.push([currentLatlng[0], currentLatlng[1]]);
+      currentLatlng[0] += deltaLat;
+      currentLatlng[1] += deltaLng;
+    }
 
-      line.addTo(linesGroup);
+    line.setLatLngs(interpolatedCoords);
+    line.addTo(linesGroup);
+  });
 
-    });
-
-    linesGroup.addTo(map);
-  }
+  linesGroup.addTo(map);
+}
 }
 
 function drawAreas() {
@@ -229,30 +198,6 @@ function drawAreas() {
   });
 }
 
-function showAlert(message, color) {
-  // Obtener el elemento del div de alerta
-  const alertBox = document.getElementById('alertBox');
-
-  // Establecer el mensaje de alerta en el contenido del div
-  alertBox.textContent = message;
-
-  // Establecer el estilo CSS para el fondo rojo+
-  if (color) {
-    alertBox.style.backgroundColor = '#f44336';
-  } else {
-    alertBox.style.backgroundColor = '#4CAF50';
-  }
-
-
-  // Mostrar el div de alerta
-  alertBox.style.display = 'block';
-
-  // Después de un tiempo, ocultar el div de alerta
-  setTimeout(() => {
-    alertBox.style.display = 'none';
-  }, 5000); // Ocultar la alerta después de 5 segundos (5000 milisegundos)
-
-}
 
 onMounted(() => {
   initializeMapAndLocator();

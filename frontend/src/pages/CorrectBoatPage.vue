@@ -89,6 +89,7 @@
           });
           currentLines = [];
         }
+
         const date = new Date(boat.BaseDateTime);
         const formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
         const formattedTime = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
@@ -105,10 +106,16 @@
                                 </div>`;
   
   
-  
+                              
         var popup = L.popup().setContent(popupContent);
-        marker.bindPopup(popup).openPopup();
-        drawLinesWithAnimation(map, [boat.LAT,boat.LON], radiogonos.map(antenna => antenna));
+        popup.setLatLng(marker.getLatLng()).openOn(map);
+        await drawLinesWithAnimation(map, [boat.LAT, boat.LON], radiogonos.map(antenna => antenna));
+        let semiMajorAxis = 113.5624900059602;
+        let semiMinorAxis = 127.04089357908843;
+        let angle = -135.35846661098765; 
+        let random1=(Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
+        let random2= (Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
+        drawEllipse(map, [boat.LAT, boat.LON], [boat.LAT +parseFloat(random1), boat.LON +parseFloat(random2)], semiMajorAxis, semiMinorAxis, angle);
       });
     });
   
@@ -142,11 +149,12 @@
       }
       const q = isInsideEllipse(boat, center, semiMajorAxis, semiMinorAxis, angle);
       const fillColor = q ? '#00FF00' : '#FF0000';
-        if(!q){
-            showAlert("Este barco no está en la posición que reporta", true);
-        }else{
-            showAlert("Este barco está en la posición que reporta", false)
-        }
+      if (!q) {
+      helpers.pushNotification('negative', 'Este barco no está en la posición que reporta');
+      
+    } else {
+      helpers.pushNotification('positive', 'Este barco está en la posición que reporta');
+    }
       currentEllipse =L.polygon(points, {
           color: 'dark',
           fillColor: fillColor,
@@ -170,41 +178,29 @@
   
   
     function drawLinesWithAnimation(map, boatCoordinates, antennaCoordinates) {
-      antennaCoordinates.forEach(antennaCoord => {
-        const latlngs = [antennaCoord, boatCoordinates];
-        const line = L.polyline([], { color: '#444', dashArray: '10, 10', weight: 1 });
-        
-        let currentLatlng = [antennaCoord[0], antennaCoord[1]];
-        let steps = 100;
-        let step = 0;
-  
-        const deltaLat = (boatCoordinates[0] - antennaCoord[0]) / steps;
-        const deltaLng = (boatCoordinates[1] - antennaCoord[1]) / steps;
-  
-        const lineDrawingInterval = setInterval(() => {
-          if (step < steps) {
-            currentLatlng[0] += deltaLat;
-            currentLatlng[1] += deltaLng;
-            line.setLatLngs([antennaCoord, currentLatlng]);
-            step++;
-          } else {
-            clearInterval(lineDrawingInterval);
-            if(currentEllipse){
-              currentEllipse.remove();
-            }  
-            let semiMajorAxis=113.5624900059602;
-            let semiMinorAxis=127.04089357908843;
-            let angle  =-135.35846661098765;                                                  //Por ahora el centro de la elipse es el propio barco
-            drawEllipse(map,[boatCoordinates[0],boatCoordinates[1]] ,[boatCoordinates[0],boatCoordinates[1]],semiMajorAxis,semiMinorAxis,angle);
-          }
-        }, 50);
-        
-        line.addTo(linesGroup);
-        
-      });
-      
-      linesGroup.addTo(map);
+  antennaCoordinates.forEach(antennaCoord => {
+    const latlngs = [antennaCoord, boatCoordinates];
+    const line = L.polyline(latlngs, { color: '#444', dashArray: '10, 10', weight: 1 });
+
+    const steps = 100;
+    const deltaLat = (boatCoordinates[0] - antennaCoord[0]) / steps;
+    const deltaLng = (boatCoordinates[1] - antennaCoord[1]) / steps;
+
+    const interpolatedCoords = [];
+    let currentLatlng = [antennaCoord[0], antennaCoord[1]];
+
+    for (let step = 0; step <= steps; step++) {
+      interpolatedCoords.push([currentLatlng[0], currentLatlng[1]]);
+      currentLatlng[0] += deltaLat;
+      currentLatlng[1] += deltaLng;
     }
+
+    line.setLatLngs(interpolatedCoords);
+    line.addTo(linesGroup);
+  });
+
+  linesGroup.addTo(map);
+}
   }
   
   function drawAreas() {
