@@ -2,14 +2,14 @@
   <q-page>
   <div >
     
-    <div  v-show="showMap" id="map"></div>
+    
     <template v-if="!submitted">
       <!-- Contenido principal -->
       <div class="container">
       <label for="images" class="drop-container" id="dropcontainer">
-        <span class="drop-title">Drop files here</span>
-        or
-        <input type="file" id="images"  @change="handleFileUpload">
+        <span class="drop-title">Arrastra un archivo (.zip/.rar)</span>
+        o
+        <input type="file" id="images" accept=".zip,.rar" @change="handleFileUpload">
       </label>
 
       <!-- Espacio entre los elementos -->
@@ -25,12 +25,10 @@
     
     <template v-else>
       <!-- Botón para volver atrás -->
-      <div class="container-botones">
-
-      </div>
-      <button @click="goBack" class="back-button">Volver atrás</button>
-      <button @click="goBack" class="download-button">Descargar</button>
-      
+        <div class="container-botones">
+          <q-btn @click="goBack" class="back-button">Volver atrás</q-btn>
+          <q-btn @click="downloadFile" class="download-button">Descargar</q-btn>
+        </div>
         <div id="alertBox" class="alert-box"></div>
         
 
@@ -60,6 +58,7 @@
         </q-btn>
       
     </template>
+    <div  v-show="showMap" id="map"></div>
     
   </div>
 </q-page>
@@ -76,7 +75,14 @@ const helpers = inject('helpers'); // Inyectar el servicio de ayuda
 let map = null;
 const showMap = ref(false);
 let boats = ref([]);
-let filteredBoats = ref([])
+let filteredBoats = ref([]);
+let alertCount = 0;
+let usedColors = new Set();
+let pointMarkers = new Map();
+let markers = new Map(); // Usamos un Map para almacenar los marcadores de barcos
+let routes = new Map();
+let selectedOption = ref('Name');
+let searchQuery = "";
 
 const selectOptions = [
   { label: 'Nombre', value: 'SHIPNAME' },
@@ -101,7 +107,7 @@ const boatIcon = L.icon({
 
 
 async function initializeMapAndLocator() {
-  map = L.map('map').setView([42.156932, -8.880105], 9);
+  map = L.map('map').setView([42.156932, -8.880105], 10);
 
   L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
     maxZoom: 19,
@@ -122,6 +128,25 @@ async function initializeMapAndLocator() {
   filteredBoats.value = boats.value;
 }
 
+
+const downloadFile = () => {
+  const content = 'Cambiar por json backend'; // Contenido del archivo
+  const fileName = 'file.json'; // Nombre del archivo
+
+  // Crear un objeto Blob con el contenido y el tipo de archivo
+  const blob = new Blob([content], { type: 'text/plain' });
+
+  // Crear un enlace <a> para descargar el archivo
+  const link = document.createElement('a');
+  link.href = window.URL.createObjectURL(blob);
+  link.download = fileName;
+
+  // Simular un clic en el enlace para iniciar la descarga
+  link.click();
+
+  // Liberar el objeto URL creado para el enlace
+  window.URL.revokeObjectURL(link.href);
+}
 
 async function handleBoatSelection(boat) {
   if (boat.checked) {
@@ -385,13 +410,45 @@ const downloadData = () => {
 
 </script>
 <style scoped>
+
+#map {
+  width: 100%;
+  height: 92vh;
+  position: relative;
+  z-index: 1;
+}
+
+.menu-button {
+  z-index: 2;
+  background-color: #1976D2;
+  position: absolute;
+  top: 1vh;
+  right: 1vw;
+  color: white;
+}
+
+.selected {
+  background-color: #9ecfff !important;
+}
+
+.alert-box {
+  display: none;
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  z-index: 9999;
+}
 .container {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   padding: 10px;
-  margin-top: 20%;
+  margin-top: 8%;
 }
 
 .drop-container {
@@ -401,7 +458,7 @@ const downloadData = () => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 200px;
+  height: 250px;
   padding: 20px;
   border-radius: 10px;
   border: 2px dashed #555;
@@ -444,43 +501,37 @@ const downloadData = () => {
   margin-top: 20px;
 }
 
-.back-button-container {
-  position: absolute; /* Establece la posición absoluta para el contenedor */
-  top: 10px; /* Alinea el contenedor en la parte superior */
-  left: 10px; /* Alinea el contenedor en la izquierda */
-}
-
 /* Estilos para el botón de volver atrás */
 .back-button {
-  margin-top:2%;
-  margin-left:2%;
+  position: absolute;
+  z-index: 2;
   padding: 10px 20px;
   z-index: 2;
   background-color: #1976D2;
-  top: 1vh;
-  right: 1vw;
   color: white;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   border-radius: 4px;
   border: none;
+  margin-top:1%;
 }
 .download-button{
-  margin-top:2%;
-  margin-left:2%;
+  position: absolute;
+  z-index: 2;
   padding: 10px 20px;
   z-index: 2;
   background-color: #1976D2;
-  top: 1vh;
-  right: 1vw;
   color: white;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   border-radius: 4px;
   border: none;
+  margin-top:1%;
+  left:190px;
 }
 .container-botones{
   display: flex;
+  margin-left:50px;
 }
 
 input[type=file]::file-selector-button {
