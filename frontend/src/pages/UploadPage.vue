@@ -375,6 +375,8 @@ const submitForm = async () => {
   submitted.value = true; // Cambia el estado a enviado
   coords = data.json;
   routes_coords = data.routes;
+  console.log(coords);
+  console.log(routes_coords);
   initializeMapAndLocator();
   showMap.value = true;
 }

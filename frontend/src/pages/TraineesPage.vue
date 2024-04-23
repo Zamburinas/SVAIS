@@ -44,19 +44,21 @@ export default {
 .box {
   width: 47%; /* Dos columnas en ordenador */
   height: auto;
-  background-color: #f0f0f0; /* Color gris muy claro */
+  background-color: #f8f8f8; /* Color gris claro */
   border: 1px solid #ccc;
+  border-radius: 8px; /* Borde redondeado */
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1); /* Sombra */
   transition: all 0.3s ease;
   cursor: pointer;
   display: inline-block;
   box-sizing: border-box;
   padding: 10px;
-  margin-left:0;
-  margin-right:2%;
+  margin: 10px 1% 20px 2%; /* Añadido margen: arriba-derecha-abajo-izquierda */
 }
 
 .box:hover {
-  background-color: #d0d0d0; /* Un poco más oscuro al pasar el ratón */
+  background-color: #e0e0e0; /* Un poco más oscuro al pasar el ratón */
+  transform: scale(1.05); /* Escalar un poco al pasar el ratón */
 }
 
 .box.hovered {
@@ -73,13 +75,13 @@ export default {
 }
 .q-gutter-md {
   margin-top: 2%;
-  margin-left: 2%;
+  margin-left: 1%;
 }
 
 /* Cuatro filas en móvil */
 @media screen and (max-width: 600px) {
   .box {
-    width: 100% !important; /* Una columna en móvil */
+    width: 96% !important; /* Una columna en móvil */
     margin-bottom: 10px; /* Espacio entre las cajas */
   }
 }

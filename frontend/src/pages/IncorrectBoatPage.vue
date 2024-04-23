@@ -108,7 +108,7 @@
   
         var popup = L.popup().setContent(popupContent);
         popup.setLatLng(marker.getLatLng()).openOn(map);
-        await drawLinesWithAnimation(map, [boat.LAT, boat.LON], radiogonos.map(antenna => antenna));
+        await drawLinesWithAnimation(map, [42.2536,-8.7457], radiogonos.map(antenna => antenna));
         let semiMajorAxis = 113.5624900059602;
         let semiMinorAxis = 127.04089357908843;
         let angle = -135.35846661098765; 

@@ -109,12 +109,12 @@
                               
         var popup = L.popup().setContent(popupContent);
         popup.setLatLng(marker.getLatLng()).openOn(map);
-        await drawLinesWithAnimation(map, [boat.LAT, boat.LON], radiogonos.map(antenna => antenna));
+        let random1=(Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
+        let random2= (Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
+        await drawLinesWithAnimation(map, [boat.LAT +parseFloat(random1), boat.LON +parseFloat(random2)], radiogonos.map(antenna => antenna));
         let semiMajorAxis = 113.5624900059602;
         let semiMinorAxis = 127.04089357908843;
         let angle = -135.35846661098765; 
-        let random1=(Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
-        let random2= (Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
         drawEllipse(map, [boat.LAT, boat.LON], [boat.LAT +parseFloat(random1), boat.LON +parseFloat(random2)], semiMajorAxis, semiMinorAxis, angle);
       });
     });
