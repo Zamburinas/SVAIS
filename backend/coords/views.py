@@ -1,11 +1,9 @@
 import json
 import pytz
 import subprocess
-import base64
 import os
 import wave
 import pandas as pd
-from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from pymongo import MongoClient
 from config import *
@@ -14,19 +12,54 @@ from datetime import datetime, timedelta
 from pyais import decode
 from datetime import datetime
 from users.views import get_credentials
-from pyais.exceptions import (
-    TooManyMessagesException,
-    MissingMultipartMessageException,
-    InvalidNMEAChecksum,
-)
+from pyais.exceptions import MissingMultipartMessageException
 import re
 
 
 # Create your views here.
-
+radiogonos = [
+    (42.254605, -8.865245),
+    (42.111481, -8.898115),
+    (42.198248, -8.906154),
+]
 db = MongoClient(DATABASE_IP, DATABASE_PORT).get_database(DATABASE_NAME)
 madrid_timezone = pytz.timezone("Europe/Madrid")
 
+def lastHour(request):
+    if request.method == "GET":
+        # Calculate the time for one hour ago
+        one_hour_ago = datetime.now(madrid_timezone) - timedelta(hours=5)
+
+        pipeline = [
+            {
+                "$match": {
+                    "BaseDateTime": {"$gte": one_hour_ago.strftime("%d-%m-%YT%H:%M:%S")}
+                }  # Match documents within the last hour
+            },
+            {
+                "$sort": {
+                    "BaseDateTime": -1
+                }  # Sort by BaseDateTime in descending order
+            },
+            {
+                "$group": {
+                    "_id": "$MMSI",
+                    "MMSI": {"$first": "$MMSI"},
+                    "LAT": {"$first": "$LAT"},
+                    "LON": {"$first": "$LON"},
+                }
+            },
+        ]
+        resultados = list(db[Database.COORDS.value].aggregate(pipeline))
+        resultados_filtered = []
+        for item in resultados:
+            if not any(value is None for value in item.values()):
+                item["_id"] = str(item["_id"])
+                resultados_filtered.append(item)
+
+        return JsonResponse({"boats": resultados_filtered, "radiogonos": radiogonos})
+    else:
+        return JsonResponse({"error": "Metodo no permitido"}, status=405)
 
 def coords(request):
     if request.method == "GET":
@@ -53,11 +86,7 @@ def coords(request):
                 item["_id"] = str(item["_id"])
                 resultados_filtered.append(item)
 
-        radiogonos = [
-            (43.6728903, -7.8391903),
-            (56.130366, -106.346771),
-            (-34.61315, -58.37723),
-        ]
+
         return JsonResponse({"boats": resultados_filtered, "radiogonos": radiogonos})
 
     elif request.method == "POST":
@@ -254,7 +283,7 @@ def boat_names(request):
         if clave != "SHIPNAME":
             try:
                 # Define the regex pattern to match the MMSI values containing the specified integer string
-                regex_pattern = fr'.*{valor}.*$'
+                regex_pattern = rf".*{valor}.*$"
                 # Query the collection using the regex pattern
                 resultados = db[Database.COORDS.value].find(
                     {
@@ -286,22 +315,28 @@ def boat_names(request):
 
 
 def get_boat_name(mmsi):
-    boat_info = db[Database.COORDS.value].find({"MMSI": mmsi, "MSG_TYPE": 5})
-    unique_name = {
+    boat_info = db[Database.COORDS.value].find({"MMSI": mmsi})
+    names = {
         boat["SHIPNAME"]
         for boat in boat_info
-        if boat["SHIPNAME"].lower() != "desconocido"
+        if boat.get("SHIPNAME", "desconocido").lower() != "desconocido"
     }
-    if unique_name:
-        return unique_name.pop()
+    if names:
+        return names.pop()
     return "Desconocido"
 
 
 def get_boat_type(mmsi):
-    boat_info = db[Database.COORDS.value].find_one({"MMSI": mmsi, "MSG_TYPE": 5})
-    if boat_info:
+    boat_info = db[Database.COORDS.value].find({"MMSI": mmsi})
+    types = {
+        boat["SHIP_TYPE"]
+        for boat in boat_info
+        if boat.get("SHIP_TYPE", "desconocido") != "desconocido"
+    }
+    if types:
+        boat_type = types.pop()
         VesselType_aux = db[Database.VESSELTYPE.value].find_one(
-            {"vesselType": {"$regex": str(boat_info["SHIP_TYPE"])}}
+            {"vesselType": {"$regex": str(boat_type)}}
         )
         return VesselType_aux["description"]
     return "Desconocido"
@@ -334,7 +369,7 @@ def getBoatInfo(request):
         resultados = resultados[0]
 
         resultados["data"]["SHIP_TYPE"] = get_boat_type(resultados["data"]["MMSI"])
-        resultados["data"]["VesselName"] = get_boat_name(resultados["data"]["MMSI"])
+        resultados["data"]["SHIPNAME"] = get_boat_name(resultados["data"]["MMSI"])
         try:
             Status_aux = db[Database.STATUS.value].find_one(
                 {"status": resultados["data"]["STATUS"]}
@@ -401,17 +436,22 @@ def decode_file(request):
 
         # Determine the file type
         file_extension = os.path.splitext(uploaded_file.name)[1].lower()
-        if file_extension != '.rav':
-            file_path_raw = file_path.replace(file_extension, '.raw')
+        if file_extension != ".raw":
+            file_path_raw = file_path.replace(file_extension, ".raw")
             try:
                 wav_to_raw(file_path, file_path_raw)
             except:
-                return JsonResponse({"msg": "Ha ocurrido un error al decodificar el mensaje."}, status=400)
+                return JsonResponse(
+                    {"msg": "Ha ocurrido un error al decodificar el mensaje."},
+                    status=400,
+                )
             file_path = file_path_raw
 
         # Set the paths and parameters for the decoding command
         ais_path = "~/LPRO/aisdecoder/build/"
-        command = f"{ais_path}aisdecoder -h 127.0.0.1 -p 12345 -a file -f {file_path} -d"
+        command = (
+            f"{ais_path}aisdecoder -h 127.0.0.1 -p 12345 -a file -f {file_path} -d"
+        )
 
         # Execute the decoding command
         result = subprocess.run(command, shell=True, capture_output=True, text=True)
@@ -421,33 +461,38 @@ def decode_file(request):
         # Remove the temporary file
         os.remove(file_path)
         if not decoded_messages:
-            return JsonResponse({"msg": "El archivo no tiene ningun mensajes"}, status=400)
+            return JsonResponse(
+                {"msg": "El archivo no tiene ningun mensajes"}, status=400
+            )
         # Return the decoded result as JSON response
         return JsonResponse(
             {
                 "msg": "Archivo decodificado correctamente.",
                 "json": decoded_messages,
                 "routes": _new_routes_json(decoded_messages),
-                'menu': _get_menu_data(decoded_messages)
+                "menu": _get_menu_data(decoded_messages),
             },
             safe=False,
         )
     else:
         return JsonResponse({"msg": "Metodo no permitido"}, status=405)
-    
+
+
 def wav_to_raw(input_wav_file, output_raw_file):
     # Open the WAV file for reading
-    with wave.open(input_wav_file, 'rb') as wav_file:
+    with wave.open(input_wav_file, "rb") as wav_file:
         # Read audio data
         audio_data = wav_file.readframes(wav_file.getnframes())
 
     # Write the audio data to a raw file
-    with open(output_raw_file, 'wb') as raw_file:
+    with open(output_raw_file, "wb") as raw_file:
         raw_file.write(audio_data)
+
 
 def convert_wav_to_raw(input_wav_file, output_raw_file):
     # Execute the sox command to convert the WAV file to a raw file
     subprocess.run(["sox", input_wav_file, output_raw_file])
+
 
 def _get_menu_data(messages):
     # Assuming messages is a dictionary containing the JSON data
@@ -459,17 +504,18 @@ def _get_menu_data(messages):
     # df_filtered = df[df['SHIPNAME'] != 'Desconocido']
 
     # Step 2: Group by MMSI and select first non-"Desconocido" SHIPNAME
-    df_grouped = df.groupby('MMSI').first().reset_index()
+    df_grouped = df.groupby("MMSI").first().reset_index()
 
     # Step 3: Project the fields
     # df_projected = df_grouped.loc[:, ['MMSI', 'SHIPNAME']]
 
     # Convert the DataFrame to a JSON object
-    result_json = df_grouped.to_json(orient='records')
+    result_json = df_grouped.to_json(orient="records")
 
     # Return the JSON object
     return json.loads(result_json)
- 
+
+
 def _decode_messages(messages):
     nmea_sentence = []
     decoded_messages = []

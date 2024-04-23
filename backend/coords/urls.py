@@ -10,4 +10,5 @@ urlpatterns = [
     path('getProtectedAreas', views.getProtectedAreas, name='getProtectedAreas'),
     path('boatInfo', views.getBoatInfo, name='boatInfo'),
     path('decodeFile', views.decode_file, name='decodeFile'),
+    path('lastHour', views.lastHour, name='lastHour')
 ]

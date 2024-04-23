@@ -71,7 +71,7 @@ const boatIcon = L.icon({
 
 
 async function initializeMapAndLocator() {
-  map = L.map('map').setView([42.156932, -8.880105], 9);
+  map = L.map('map').setView([42.156932, -8.880105], 11);
 
   L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
     maxZoom: 19,
@@ -160,6 +160,18 @@ async function handleBoatSelection(boat) {
         for (let i = 0; i < indexPoint; i++) {
           const coord = routeData.route[i];
           const marker = L.marker([coord[0], coord[1]], { icon: PointIcon }).addTo(map);
+          marker.on('click', async () => {
+            let aux = await helpers.getBoatInfo(boat.MMSI);
+            var popupContent = `<div class="popup-content">
+                                <span class="label">MMSI:</span> <span class="mmsi">${boat.MMSI}</span><br>
+                                <span class="label">Hora:</span> <span class="time">${coord[2]}</span><br>
+                                <span class="label">Latitud:</span> <span class="latitude">${coord[0]}</span><br>
+                                <span class="label">Longitud:</span> <span class="longitude">${coord[1]}</span><br>
+                              </div>`;
+
+            var popup = L.popup().setContent(popupContent);
+            marker.bindPopup(popup).openPopup();
+          });
           pointMarkersArray.push(marker);
         }
 
@@ -168,7 +180,7 @@ async function handleBoatSelection(boat) {
       pointMarkers.set(boat, pointMarkersArray);
       if (alertCount !== 0) {
         helpers.pushNotification('negative', 'Este barco no está en la posición que reporta');
-        
+
       } else {
         helpers.pushNotification('positive', 'Este barco está en la posición que reporta');
       }
@@ -293,9 +305,9 @@ async function search() {
 
 
   // Filtrar los barcos que coincidan con la consulta de búsqueda
-  let prueba=null;
+  let prueba = null;
   let filter = { [option]: searchQuery };
-  if(searchQuery!='') prueba= await helpers.getBoats(filter);
+  if (searchQuery != '') prueba = await helpers.getBoats(filter);
   else prueba = await helpers.getBoatNames();
   filteredBoats.value = boats.value.filter(boat => {
     return prueba.includes(boat.name);
