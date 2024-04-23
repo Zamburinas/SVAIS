@@ -402,8 +402,11 @@ def decode_file(request):
         # Determine the file type
         file_extension = os.path.splitext(uploaded_file.name)[1].lower()
         if file_extension != '.rav':
-            file_path_raw = file_path.replace('.wav', '.raw')
-            wav_to_raw(file_path, file_path_raw)
+            file_path_raw = file_path.replace(file_extension, '.raw')
+            try:
+                wav_to_raw(file_path, file_path_raw)
+            except:
+                return JsonResponse({"msg": "Ha ocurrido un error al decodificar el mensaje."}, status=400)
             file_path = file_path_raw
 
         # Set the paths and parameters for the decoding command
