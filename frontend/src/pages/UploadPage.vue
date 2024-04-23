@@ -242,7 +242,6 @@ async function handleBoatSelection(boat) {
         const boatMarker = L.marker([lastCoords[0], lastCoords[1]], { icon: boatIcon }).addTo(map);
         boatMarker.on('click', async () => {
           let aux = coords.filter(coord => coord.MMSI === boat.MMSI)[0];
-          console.log(boat.MMSI, coords);
 
           var popupContent = `<div class="popup-content">
                                 <span class="label">Nombre:</span> <span class="boat-name">${aux.SHIPNAME}</span><br>
