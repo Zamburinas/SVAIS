@@ -70,7 +70,7 @@
       checked: false
     }));
     filteredBoats.value = boats.value;
-    handleBoatSelection(coords[88]);
+    handleBoatSelection(coords.filter(coord => coord.MMSI === 303294000)[0]);
   }
   
   
@@ -78,7 +78,7 @@
   
   async function handleBoatSelection(boat) {
       try {
-        const response = await helpers.getBoatRoute({ "MMSI": boat.MMSI });
+        const response = await helpers.getBoatRoute({ "MMSI":  boat.MMSI});
 
         let alertCount = 0; // Contador de alertas
   
@@ -166,6 +166,7 @@
   
         // Colocar el icono del barco en el último punto de la última ruta
         if (lastCoords) {
+          map.setView([lastCoords[0], lastCoords[1]], 14);
           const boatMarker = L.marker([lastCoords[0], lastCoords[1]], { icon: boatIcon }).addTo(map);
           markers.set(boat, boatMarker); // Asociar el marcador con el barco en el mapa
         }
@@ -264,7 +265,6 @@
   
     // // Filtrar los barcos que coincidan con la consulta de búsqueda
     // let prueba= await helpers.getBoats({option:searchQuery.toLowerCase()});
-    // console.log(prueba);
     filteredBoats.value = boats.value.filter(boat => {
       return boat.name.toLowerCase().includes(searchQuery.toLowerCase());
     });

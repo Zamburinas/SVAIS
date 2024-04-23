@@ -121,7 +121,7 @@ const notLoginList = [
 const loginList = [
 
   {
-    title: 'Mapa',
+    title: 'Seguimiento',
     icon: 'map',
     page: '/',
     size: 'sm'
@@ -133,7 +133,7 @@ const loginList = [
     size: 'sm'
   },
   {
-    title: 'Casos de uso',
+    title: 'Modo formacion',
     icon: 'school',
     page: '/trainees',
     size: 'sm'

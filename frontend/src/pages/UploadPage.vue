@@ -109,8 +109,17 @@ const boatIcon = L.icon({
 
 
 
-async function initializeMapAndLocator() {
-  map = L.map('map').setView([42.156932, -8.880105], 10);
+async function initializeMapAndLocator(boat) {
+  if (map){
+    map.remove();
+  }
+  if (coords[0].LAT === undefined){
+    helpers.pushNotification('negative', 'Los archivo contienen datos pero no coordenadas para representar.')
+    map = L.map('map').setView([42.156932, -8.880105], 9);
+  } else {
+    map = L.map('map').setView([boat.LAT, boat.LON], 10);
+  }
+  
 
   L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
     maxZoom: 19,
@@ -232,17 +241,16 @@ async function handleBoatSelection(boat) {
       if (lastCoords) {
         const boatMarker = L.marker([lastCoords[0], lastCoords[1]], { icon: boatIcon }).addTo(map);
         boatMarker.on('click', async () => {
-          let aux = await helpers.getBoatInfo(boat.MMSI);
+          let aux = coords.filter(coord => coord.MMSI === boat.MMSI)[0];
+          console.log(boat.MMSI, coords);
 
           var popupContent = `<div class="popup-content">
-                                <span class="label">Nombre:</span> <span class="boat-name">${aux.data.VesselName}</span><br>
-                                <span class="label">Tipo de Barco:</span> <span class="vessel-type">${aux.data.VesselType}</span><br>
-                                <span class="label">MMSI:</span> <span class="mmsi">${aux.data.MMSI}</span><br>
-                                <span class="label">Fecha:</span> <span class="date">${aux.data.day}</span><br>
-                                <span class="label">Hora:</span> <span class="time">${aux.data.hour}</span><br>
-                                <span class="label">Estado:</span> <span class="status">${aux.data.STATUS}</span><br>
-                                <span class="label">Latitud:</span> <span class="latitude">${aux.data.LAT}</span><br>
-                                <span class="label">Longitud:</span> <span class="longitude">${aux.data.LON}</span><br>
+                                <span class="label">Nombre:</span> <span class="boat-name">${aux.SHIPNAME}</span><br>
+                                <span class="label">Tipo de Barco:</span> <span class="vessel-type">${aux.SHIP_TYPE}</span><br>
+                                <span class="label">MMSI:</span> <span class="mmsi">${aux.MMSI}</span><br>
+                                <span class="label">Estado:</span> <span class="status">${aux.STATUS}</span><br>
+                                <span class="label">Latitud:</span> <span class="latitude">${lastCoords[0]}</span><br>
+                                <span class="label">Longitud:</span> <span class="longitude">${lastCoords[1]}</span><br>
                               </div>`;
 
 
@@ -373,12 +381,11 @@ const submitForm = async () => {
 
   content = JSON.stringify(data.json);
   submitted.value = true; // Cambia el estado a enviado
-  coords = data.json;
+  coords = data.menu;
   routes_coords = data.routes;
-  console.log(coords);
-  console.log(routes_coords);
-  initializeMapAndLocator();
   showMap.value = true;
+  await initializeMapAndLocator(coords[0]);
+  map.invalidateSize();
 }
 
 // Función para volver atrás

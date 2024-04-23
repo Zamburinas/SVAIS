@@ -3,6 +3,8 @@ import pytz
 import subprocess
 import base64
 import os
+import wave
+import pandas as pd
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from pymongo import MongoClient
@@ -99,14 +101,13 @@ def coords(request):
 
         return JsonResponse({"msg": "Coord received succesfully."})
     else:
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Metodo no permitido"}, status=405)
 
 
 def get_route(request):
     if request.method == "POST":
         body = json.loads(request.body)
         min_distance = 0.0005
-
         pipeline = [
             {"$match": {"MMSI": body["MMSI"]}},
             {"$sort": {"BaseDateTime": 1}},
@@ -139,7 +140,7 @@ def get_route(request):
 
         return JsonResponse(response_data, safe=False)
     else:
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Metodo no permitido"}, status=405)
 
 
 def detect_new_routes(resultado):
@@ -248,29 +249,40 @@ def boat_names(request):
 
         body = json.loads(request.body)
 
-        
         clave = next(iter(body))
         valor = body[clave]
-        if(clave!="SHIPNAME"):
-            valor=int(valor)
-            
-            resultados = db[Database.COORDS.value].find({clave: valor})
+        if clave != "SHIPNAME":
+            try:
+                # Define the regex pattern to match the MMSI values containing the specified integer string
+                regex_pattern = fr'.*{valor}.*$'
+                # Query the collection using the regex pattern
+                resultados = db[Database.COORDS.value].find(
+                    {
+                        "$expr": {
+                            "$regexMatch": {
+                                "input": {"$toString": f"${clave}"},
+                                "regex": regex_pattern,
+                                "options": "i",  # Optional: case-insensitive
+                            }
+                        }
+                    }
+                )
+            except:
+                resultados = []
         else:
             regex = re.compile(re.escape(valor), re.IGNORECASE)
             resultados = db[Database.COORDS.value].find({clave: {"$regex": regex}})
 
-
         vessel_names_set = set()
-        
+
         for resultado in resultados:
-            
+
             vessel_names_set.add(resultado["SHIPNAME"])
-        
+
         vessel_names_unique = list(vessel_names_set)
-        print(vessel_names_unique)
         return JsonResponse(json.dumps(vessel_names_unique), safe=False)
     else:
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Metodo no permitido"}, status=405)
 
 
 def get_boat_name(mmsi):
@@ -321,7 +333,7 @@ def getBoatInfo(request):
 
         resultados = resultados[0]
 
-        resultados["data"]["VesselType"] = get_boat_type(resultados["data"]["MMSI"])
+        resultados["data"]["SHIP_TYPE"] = get_boat_type(resultados["data"]["MMSI"])
         resultados["data"]["VesselName"] = get_boat_name(resultados["data"]["MMSI"])
         try:
             Status_aux = db[Database.STATUS.value].find_one(
@@ -336,7 +348,7 @@ def getBoatInfo(request):
 
         return JsonResponse(resultados, safe=False)
     else:
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Metodo no permitido"}, status=405)
 
 
 def getProtectedAreas(request):
@@ -353,7 +365,7 @@ def getProtectedAreas(request):
         return JsonResponse(areas, safe=False)
 
     else:
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+        return JsonResponse({"error": "Metodo no permitido"}, status=405)
 
 
 def _convert_enum_to_string(data: dict):
@@ -371,46 +383,90 @@ def decode_file(request):
     if request.method == "POST":
         try:
             # Get the uploaded file from the request
-            uploaded_file = request.FILES['file']
+            uploaded_file = request.FILES["file"]
         except KeyError:
             return JsonResponse({"msg": "No file uploaded."}, status=400)
-        
+
         # Check the file size
         if uploaded_file.size > 100 * 1024 * 1024:  # 100 MB
-            return JsonResponse({"msg": "File exceeds maximum limit of 100 MB."}, status=400)
-        
+            return JsonResponse(
+                {"msg": "File exceeds maximum limit of 100 MB."}, status=400
+            )
+
         # Save the file to a temporary location
-        file_path = os.path.join('/tmp', uploaded_file.name)
-        with open(file_path, 'wb') as f:
+        file_path = os.path.join("/tmp", uploaded_file.name)
+        with open(file_path, "wb") as f:
             for chunk in uploaded_file.chunks():
                 f.write(chunk)
-        
+
         # Determine the file type
         file_extension = os.path.splitext(uploaded_file.name)[1].lower()
-        convert = {"raw": "file", "wav": "alsa"}
+        if file_extension == '.wav':
+            file_path_raw = file_path.replace('.wav', '.raw')
+            wav_to_raw(file_path, file_path_raw)
+            file_path = file_path_raw
 
         # Set the paths and parameters for the decoding command
         ais_path = "~/LPRO/aisdecoder/build/"
-        convert_type = convert.get(file_extension[1:], 'file')
-        command = f"{ais_path}aisdecoder -h 127.0.0.1 -p 12345 -a {convert_type} -f {file_path} -d"
-        
+        command = f"{ais_path}aisdecoder -h 127.0.0.1 -p 12345 -a file -f {file_path} -d"
+
         # Execute the decoding command
         result = subprocess.run(command, shell=True, capture_output=True, text=True)
         output = result.stderr.split("\n")
         decoded_messages = _decode_messages(output)
-        
+
         # Remove the temporary file
         os.remove(file_path)
-
+        if not decoded_messages:
+            return JsonResponse({"msg": "El archivo no tiene ningun mensajes"}, status=400)
         # Return the decoded result as JSON response
         return JsonResponse(
-            {"msg": "File decoded successfully.", "json": decoded_messages, "routes": _new_routes_json(decoded_messages)},
-            safe=False
+            {
+                "msg": "Archivo decodificado correctamente.",
+                "json": decoded_messages,
+                "routes": _new_routes_json(decoded_messages),
+                'menu': _get_menu_data(decoded_messages)
+            },
+            safe=False,
         )
     else:
-        return JsonResponse({"msg": "Method not allowed"}, status=405)
+        return JsonResponse({"msg": "Metodo no permitido"}, status=405)
+    
+def wav_to_raw(input_wav_file, output_raw_file):
+    # Open the WAV file for reading
+    with wave.open(input_wav_file, 'rb') as wav_file:
+        # Read audio data
+        audio_data = wav_file.readframes(wav_file.getnframes())
 
+    # Write the audio data to a raw file
+    with open(output_raw_file, 'wb') as raw_file:
+        raw_file.write(audio_data)
 
+def convert_wav_to_raw(input_wav_file, output_raw_file):
+    # Execute the sox command to convert the WAV file to a raw file
+    subprocess.run(["sox", input_wav_file, output_raw_file])
+
+def _get_menu_data(messages):
+    # Assuming messages is a dictionary containing the JSON data
+    # Convert the dictionary to a DataFrame
+    df = pd.DataFrame(messages)
+
+    # Apply the aggregation pipeline steps using pandas operations
+    # Step 1: Filter out documents where SHIPNAME is "Desconocido"
+    # df_filtered = df[df['SHIPNAME'] != 'Desconocido']
+
+    # Step 2: Group by MMSI and select first non-"Desconocido" SHIPNAME
+    df_grouped = df.groupby('MMSI').first().reset_index()
+
+    # Step 3: Project the fields
+    # df_projected = df_grouped.loc[:, ['MMSI', 'SHIPNAME']]
+
+    # Convert the DataFrame to a JSON object
+    result_json = df_grouped.to_json(orient='records')
+
+    # Return the JSON object
+    return json.loads(result_json)
+ 
 def _decode_messages(messages):
     nmea_sentence = []
     decoded_messages = []
@@ -430,26 +486,33 @@ def _decode_messages(messages):
             nmea_sentence = []
     return decoded_messages
 
+
 def _add_names(resultado):
-    names = {i['MMSI']: i['SHIPNAME'] for i in resultado if i.get('SHIPNAME', None) is not None}
+    names = {
+        i["MMSI"]: i["SHIPNAME"]
+        for i in resultado
+        if i.get("SHIPNAME", None) is not None
+    }
     resultado_new = []
     for i in resultado:
-        if i['MMSI'] in names:
-            i['SHIPNAME'] = names[i['MMSI']]
+        if i["MMSI"] in names:
+            i["SHIPNAME"] = names[i["MMSI"]]
         else:
-            i['SHIPNAME'] = 'Desconocido'
+            i["SHIPNAME"] = "Desconocido"
         resultado_new.append(i)
     return resultado_new
+
 
 def _group_mmsi(data):
     grouped = {}
     for i in data:
-        mmsi = i['MMSI']
+        mmsi = i["MMSI"]
         if mmsi in grouped:
             grouped[mmsi].append(i)
         else:
             grouped[mmsi] = [i]
     return grouped
+
 
 def _new_routes_json(resultado):
     resultado = _add_names(resultado)
