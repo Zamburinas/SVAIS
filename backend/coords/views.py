@@ -401,7 +401,7 @@ def decode_file(request):
 
         # Determine the file type
         file_extension = os.path.splitext(uploaded_file.name)[1].lower()
-        if file_extension == '.wav':
+        if file_extension != '.rav':
             file_path_raw = file_path.replace('.wav', '.raw')
             wav_to_raw(file_path, file_path_raw)
             file_path = file_path_raw
