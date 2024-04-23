@@ -17,6 +17,8 @@ from pyais.exceptions import (
     MissingMultipartMessageException,
     InvalidNMEAChecksum,
 )
+import re
+
 
 # Create your views here.
 
@@ -246,25 +248,26 @@ def boat_names(request):
 
         body = json.loads(request.body)
 
-        query = body
-        pipeline = [
-            {
-                "$match": query  # Utiliza la consulta proporcionada para filtrar los resultados
-            },
-            {"$group": {"_id": "$SHIPNAME"}},
-            {
-                "$project": {
-                    "_id": 0,  # Excluye el campo "_id"
-                    "SHIPNAME": "$_id",  # Renombra "_id" a "VesselName"
-                }
-            },
-        ]
-        resultados = db[Database.COORDS.value].aggregate(pipeline)
-        vessel_names_set = set()
-        for resultado in resultados:
-            vessel_names_set.add(resultado["SHIPNAME"])
+        
+        clave = next(iter(body))
+        valor = body[clave]
+        if(clave!="SHIPNAME"):
+            valor=int(valor)
+            
+            resultados = db[Database.COORDS.value].find({clave: valor})
+        else:
+            regex = re.compile(re.escape(valor), re.IGNORECASE)
+            resultados = db[Database.COORDS.value].find({clave: {"$regex": regex}})
 
+
+        vessel_names_set = set()
+        
+        for resultado in resultados:
+            
+            vessel_names_set.add(resultado["SHIPNAME"])
+        
         vessel_names_unique = list(vessel_names_set)
+        print(vessel_names_unique)
         return JsonResponse(json.dumps(vessel_names_unique), safe=False)
     else:
         return JsonResponse({"error": "Method not allowed"}, status=405)

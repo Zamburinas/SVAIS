@@ -53,7 +53,7 @@ const selectOptions = [
   { label: 'Nombre', value: 'SHIPNAME' },
   { label: 'MMSI', value: 'MMSI' },
   { label: 'Tipo de Vessel', value: 'VesselType' },
-  { label: 'Estado', value: 'Status' }
+  { label: 'Estado', value: 'STATUS' }
 ];
 
 const PointIcon = L.icon({
@@ -294,7 +294,9 @@ async function search() {
 
 
   // Filtrar los barcos que coincidan con la consulta de búsqueda
-  let prueba = await helpers.getBoats({ [option]: { "$regex": searchQuery, '$options': 'i' } });
+  let prueba=null;
+  if(searchQuery!='') prueba= await helpers.getBoats({ [option]: searchQuery });
+  else prueba = await helpers.getBoatNames();
   filteredBoats.value = boats.value.filter(boat => {
     return prueba.includes(boat.name);
   });
