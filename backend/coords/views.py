@@ -281,27 +281,52 @@ def boat_names(request):
         clave = next(iter(body))
         valor = body[clave]
         if clave != "SHIPNAME":
-            try:
-                # Define the regex pattern to match the MMSI values containing the specified integer string
-                regex_pattern = rf".*{valor}.*$"
-                # Query the collection using the regex pattern
-                resultados = db[Database.COORDS.value].find(
-                    {
-                        "$expr": {
-                            "$regexMatch": {
-                                "input": {"$toString": f"${clave}"},
-                                "regex": regex_pattern,
-                                "options": "i",  # Optional: case-insensitive
+            if clave != "MMSI":
+                try:
+                    
+                    regex = re.compile(re.escape(valor), re.IGNORECASE)
+                    if clave=="STATUS":
+                        resultados = db[Database.STATUS.value].find({"description": {"$regex": regex}})
+                        valores = set()  # Usamos un conjunto para evitar duplicados
+                        for doc in resultados:
+                            valores.add(doc["status"])
+                        print(list(valores))
+                        query = {clave: {"$in": list(valores)}}
+                        resultados = db[Database.COORDS.value].find(query)
+
+                    else:
+                        resultados = db[Database.VESSELTYPE.value].find({"description": {"$regex": regex}})
+                        valores = set()  # Usamos un conjunto para evitar duplicados
+                        for doc in resultados:
+                            valores.add(int(doc["vesselType"]))
+                        print(list(valores))
+                        query = {clave: {"$in": list(valores)}}
+                        resultados = db[Database.COORDS.value].find(query)
+                        
+                except:
+                    resultados = []  
+                    
+            else:
+                try:
+                    # Define the regex pattern to match the MMSI values containing the specified integer string
+                    regex_pattern = rf".*{valor}.*$"
+                    # Query the collection using the regex pattern
+                    resultados = db[Database.COORDS.value].find(
+                        {
+                            "$expr": {
+                                "$regexMatch": {
+                                    "input": {"$toString": f"${clave}"},
+                                    "regex": regex_pattern,
+                                    "options": "i",  # Optional: case-insensitive
+                                }
                             }
                         }
-                    }
-                )
-            except:
-                resultados = []
+                    )
+                except:
+                    resultados = []
         else:
             regex = re.compile(re.escape(valor), re.IGNORECASE)
             resultados = db[Database.COORDS.value].find({clave: {"$regex": regex}})
-
         vessel_names_set = set()
 
         for resultado in resultados:
@@ -309,6 +334,7 @@ def boat_names(request):
             vessel_names_set.add(resultado["SHIPNAME"])
 
         vessel_names_unique = list(vessel_names_set)
+        print(vessel_names_unique)
         return JsonResponse(json.dumps(vessel_names_unique), safe=False)
     else:
         return JsonResponse({"error": "Metodo no permitido"}, status=405)

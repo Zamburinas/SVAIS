@@ -133,7 +133,7 @@ const loginList = [
     size: 'sm'
   },
   {
-    title: 'Modo formacion',
+    title: 'Formación',
     icon: 'school',
     page: '/trainees',
     size: 'sm'
