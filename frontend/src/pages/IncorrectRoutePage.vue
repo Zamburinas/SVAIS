@@ -79,7 +79,6 @@
   async function handleBoatSelection(boat) {
       try {
         const response = await helpers.getBoatRoute({ "MMSI":  boat.MMSI});
-
         let alertCount = 0; // Contador de alertas
   
         const routeSegments = []; // Almacenar segmentos de la ruta con problemas
@@ -94,12 +93,9 @@
             const [lat2, lon2, time2, sog2] = routeData.route[i];
             
             const speedKnots=calcularDistancia(lat1, lon1, lat2, lon2,time1,time2);
-  
-  
-            if (speedKnots > sog2 * 2) {
-              alertCount++;
-              routeSegments.push([lat1, lon1, lat2, lon2]); // Almacenar segmento sospechoso
-            }
+
+            alertCount++;
+            routeSegments.push([lat1, lon1, lat2, lon2]); // Almacenar segmento sospechoso
           }
   
           let primerosDosElementos = [];
@@ -155,12 +151,12 @@
         });
         routes.set(boat,routesArray);
         pointMarkers.set(boat, pointMarkersArray);
-  
+       
         if (alertCount !== 0) {
-        helpers.pushNotification('negative', 'Este barco no está en la posición que reporta');
-        
+        helpers.pushNotification('negative', 'Hay un total de '+alertCount+' tramos sospechosos');
+        alertCount=0;
       } else {
-        helpers.pushNotification('positive', 'Este barco está en la posición que reporta');
+        helpers.pushNotification('positive', 'Ruta correcta');
       }
   
   

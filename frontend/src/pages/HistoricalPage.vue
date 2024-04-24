@@ -179,10 +179,10 @@ async function handleBoatSelection(boat) {
       routes.set(boat, routesArray);
       pointMarkers.set(boat, pointMarkersArray);
       if (alertCount !== 0) {
-        helpers.pushNotification('negative', 'Este barco no está en la posición que reporta');
-
+        helpers.pushNotification('negative', 'Hay un total de '+alertCount+' tramos sospechosos');
+        alertCount=0;
       } else {
-        helpers.pushNotification('positive', 'Este barco está en la posición que reporta');
+        helpers.pushNotification('positive', 'Ruta correcta');
       }
 
       // Colocar el icono del barco en el último punto de la última ruta
