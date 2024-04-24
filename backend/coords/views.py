@@ -59,7 +59,7 @@ def lastHour(request):
 
         return JsonResponse({"boats": resultados_filtered, "radiogonos": radiogonos})
     else:
-        return JsonResponse({"error": "Método no permitido"}, status=405)
+        return JsonResponse({"error": "Metodo no permitido"}, status=405)
 
 def coords(request):
     if request.method == "GET":
@@ -130,7 +130,7 @@ def coords(request):
 
         return JsonResponse({"msg": "Coord received succesfully."})
     else:
-        return JsonResponse({"error": "Método no permitido"}, status=405)
+        return JsonResponse({"error": "Metodo no permitido"}, status=405)
 
 
 def get_route(request):
@@ -169,7 +169,7 @@ def get_route(request):
 
         return JsonResponse(response_data, safe=False)
     else:
-        return JsonResponse({"error": "Método no permitido"}, status=405)
+        return JsonResponse({"error": "Metodo no permitido"}, status=405)
 
 
 def detect_new_routes(resultado):
@@ -311,7 +311,7 @@ def boat_names(request):
         vessel_names_unique = list(vessel_names_set)
         return JsonResponse(json.dumps(vessel_names_unique), safe=False)
     else:
-        return JsonResponse({"error": "Método no permitido"}, status=405)
+        return JsonResponse({"error": "Metodo no permitido"}, status=405)
 
 
 def get_boat_name(mmsi):
@@ -383,7 +383,7 @@ def getBoatInfo(request):
 
         return JsonResponse(resultados, safe=False)
     else:
-        return JsonResponse({"error": "Método no permitido"}, status=405)
+        return JsonResponse({"error": "Metodo no permitido"}, status=405)
 
 
 def getProtectedAreas(request):
@@ -400,7 +400,7 @@ def getProtectedAreas(request):
         return JsonResponse(areas, safe=False)
 
     else:
-        return JsonResponse({"error": "Método no permitido"}, status=405)
+        return JsonResponse({"error": "Metodo no permitido"}, status=405)
 
 
 def _convert_enum_to_string(data: dict):
@@ -420,12 +420,12 @@ def decode_file(request):
             # Get the uploaded file from the request
             uploaded_file = request.FILES["file"]
         except KeyError:
-            return JsonResponse({"msg": "No file uploaded."}, status=400)
+            return JsonResponse({"msg": "No se ha subido ninguna archivo."}, status=400)
 
         # Check the file size
         if uploaded_file.size > 100 * 1024 * 1024:  # 100 MB
             return JsonResponse(
-                {"msg": "El archivo excede el tamaño máximo de 100 MB."}, status=400
+                {"msg": "El archivo es demsiado grande > 100 MB."}, status=400
             )
 
         # Save the file to a temporary location
@@ -462,7 +462,7 @@ def decode_file(request):
         os.remove(file_path)
         if not decoded_messages:
             return JsonResponse(
-                {"msg": "El archivo no tiene ningún mensaje"}, status=400
+                {"msg": "El archivo no tiene ningun mensaje"}, status=400
             )
         # Return the decoded result as JSON response
         return JsonResponse(
@@ -475,7 +475,7 @@ def decode_file(request):
             safe=False,
         )
     else:
-        return JsonResponse({"msg": "Método no permitido"}, status=405)
+        return JsonResponse({"msg": "Metodo no permitido"}, status=405)
 
 
 def wav_to_raw(input_wav_file, output_raw_file):

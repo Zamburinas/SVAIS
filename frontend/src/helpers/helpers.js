@@ -26,7 +26,7 @@ export async function login(email, password, tfa) {
     })
     .then(data => {
       saveToken(data);
-      pushNotification('positive', 'Sesión iniciada correctamente.', 'top')
+      pushNotification('positive', 'Sesion iniciada correctamente.', 'top')
       return true;
     })
     .catch(error => {
@@ -90,7 +90,7 @@ export async function checkToken() {
 export async function logout(router) {
   pushNotification(
     'light-blue',
-    '¿Seguro que quieres deconectarte?',
+    'Seguro que quieres desconectarte?',
     'top',
     [
       {
