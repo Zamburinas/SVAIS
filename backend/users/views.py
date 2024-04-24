@@ -28,19 +28,19 @@ def login(request):
         tfa = body.get("tfa", None)
 
         if email is None or password is None or not _check_credentials(email, password):
-            return JsonResponse({"msg": "Email or password not valid"}, status=400)
+            return JsonResponse({"msg": "Correo o contraseña no válido."}, status=400)
 
         user_data = get_credentials(email)
         if user_data["two_factor_auth"]:
             if tfa is None:
                 return JsonResponse(
-                    {"msg": "Two Factor Authentication required", "tfa": True},
+                    {"msg": "Se requiere de autenticación en dos pasos.", "tfa": True},
                     status=400,
                 )
 
             if not _two_factor_auth(email, tfa):
                 return JsonResponse(
-                    {"msg": "Two Factor Authentication doesn't match", "tfa": True},
+                    {"msg": "La autenticación en dos pasos no coincide.", "tfa": True},
                     status=400,
                 )
 
@@ -49,7 +49,7 @@ def login(request):
             {
                 "token": token,
                 "user_info": {key: user_data.get(key) for key in desired_keys},
-                "msg": "Succesfully logged in!",
+                "msg": "Sesión iniciada correctamente.",
             }
         )
 
@@ -63,17 +63,17 @@ def register(request):
         body = json.loads(request.body)
 
         if any(i is None or len(i) == 0 for i in list(body.values())):
-            return JsonResponse({"msg": "There's some missing field."}, status=400)
+            return JsonResponse({"msg": "Hay algún campo vacío."}, status=400)
 
         if body["password"] != body["repeatPassword"]:
-            return JsonResponse({"msg": "Password do not match."}, status=400)
+            return JsonResponse({"msg": "Las contraseñas no coinciden."}, status=400)
 
         if not _is_valid_email(body["email"]):
-            return JsonResponse({"msg": "Wrong email format."}, status=400)
+            return JsonResponse({"msg": "Formato de correo incorrecto."}, status=400)
 
         user = get_credentials(body["email"])
         if user:
-            return JsonResponse({"msg": "User already exist."}, status=400)
+            return JsonResponse({"msg": "El usuario ya existe. Prueba a iniciar sesión."}, status=400)
 
         collection.insert_one(
             {
@@ -87,10 +87,10 @@ def register(request):
             }
         )
 
-        return JsonResponse({"msg": "User created succesfully."})
+        return JsonResponse({"msg": "Uusario creado correctamente."})
 
     else:
-        return JsonResponse({"msg": "Method not allowed"}, status=405)
+        return JsonResponse({"msg": "Método no permitido."}, status=405)
 
 
 def twoFactorAuth(request):
@@ -119,12 +119,12 @@ def twoFactorAuth(request):
                 },
             )
         except Exception as e:
-            return JsonResponse({"msg": "An error has ocurred"}, status=500)
+            return JsonResponse({"msg": "Ha ocurrido un error."}, status=500)
 
-        return JsonResponse({"message": "Image uploaded successfully"})
+        return JsonResponse({"message": "Autenticación en dos pasos activada correctmanete."})
 
     else:
-        return JsonResponse({"msg": "Method not allowed"}, status=405)
+        return JsonResponse({"msg": "Método no permitido."}, status=405)
 
 
 def disableTwoFactor(request):
@@ -151,11 +151,11 @@ def disableTwoFactor(request):
             return JsonResponse({"msg": "An error has ocurred"}, status=500)
 
         return JsonResponse(
-            {"message": "Two Factor Authentication disabled succesfully."}
+            {"message": "Autenticación en dos pasos deshabilitada correctamente."}
         )
 
     else:
-        return JsonResponse({"msg": "Method not allowed"}, status=405)
+        return JsonResponse({"msg": "Método no permitido."}, status=405)
 
 
 def checkToken(request):
