@@ -16,6 +16,7 @@ let currentLines = [];
 let linesGroup = L.layerGroup();
 let helpers = inject('helpers');
 let map = null;
+const randomOffsets = new Map();
 
 async function initializeMapAndLocator() {
   if (!map) {
@@ -88,13 +89,19 @@ async function initializeMapAndLocator() {
 
         var popup = L.popup().setContent(popupContent);
         marker.bindPopup(popup).openPopup();
-        let random1=(Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
-        let random2= (Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
-        await drawLinesWithAnimation(map, [boat.LAT +parseFloat(random1), boat.LON +parseFloat(random2)], coorGoniometros.map(antenna => antenna));
+        if (!randomOffsets.has(boat.MMSI)) {
+          // Generar un valor de desplazamiento aleatorio
+          const randomLatOffset = (Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
+          const randomLngOffset = (Math.random() * (0.005 - (-0.005)) + (-0.005)).toFixed(6);
+          randomOffsets.set(boat.MMSI, [parseFloat(randomLatOffset), parseFloat(randomLngOffset)]);
+        }
+        const randomOffset = randomOffsets.get(boat.MMSI);
+        const center = [boat.LAT + randomOffset[0], boat.LON + randomOffset[1]];
+        await drawLinesWithAnimation(map, center, coorGoniometros.map(antenna => antenna));
         let semiMajorAxis = 113.5624900059602;
         let semiMinorAxis = 127.04089357908843;
         let angle = -135.35846661098765; 
-        drawEllipse(map, [boat.LAT, boat.LON], [boat.LAT +parseFloat(random1), boat.LON +parseFloat(random2)], semiMajorAxis, semiMinorAxis, angle);
+        drawEllipse(map, [boat.LAT, boat.LON], center, semiMajorAxis, semiMinorAxis, angle);
   
       });
     });
