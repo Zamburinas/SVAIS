@@ -26,7 +26,7 @@
       <template v-else>
         <!-- Botón para volver atrás -->
         <div class="container-botones">
-          <q-btn @click="goBack" class="back-button">Volver atrás</q-btn>
+          <q-btn @click="goBack" class="back-button">Atrás</q-btn>
           <q-btn @click="downloadFile" class="download-button">Descargar</q-btn>
         </div>
         <div id="alertBox" class="alert-box"></div>
@@ -114,6 +114,7 @@ async function initializeMapAndLocator(boat) {
     accessToken: "pk.eyJ1IjoiYm9id2F0Y2hlcngiLCJhIjoiY2xiMGwwZThrMWg3aTNwcW1mOGRucHh6bSJ9.kNHlmRqkRSxYNeipcKkJhw",
   }).addTo(map);
 
+  map.removeControl(map.zoomControl);
   boats.value = coords.map(coord => ({
     MMSI: coord.MMSI,
     name: coord.SHIPNAME,
@@ -502,13 +503,14 @@ const downloadData = () => {
   cursor: pointer;
   border-radius: 4px;
   border: none;
-  top: 6vh;
+  left:95px;
+  top: 1vh;
 
 }
 
 .container-botones {
   display: flex;
-  margin-left: 50px;
+  margin-left: 1vw;
   align-items:center;
 }
 
