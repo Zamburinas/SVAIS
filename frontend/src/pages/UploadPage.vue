@@ -35,13 +35,6 @@
         <!-- Botón para abrir el menú desplegable -->
         <q-btn class="menu-button" label="Menu">
           <q-menu fit>
-            <div class="q-pa-md">
-              <q-input outlined v-model="searchQuery" @keyup="search" placeholder="Search boats...">
-              </q-input>
-              <!-- Agregar el q-select con las opciones desplegables -->
-              <q-select v-model="selectedOption" :options="selectOptions">
-              </q-select>
-            </div>
             <q-virtual-scroll :items="filteredBoats" item-height="50">
               <template v-slot="{ item }">
                 <q-item clickable v-ripple :class="{ 'selected': item.checked }" @click="toggleBoat(item)">
@@ -86,13 +79,6 @@ let markers = new Map(); // Usamos un Map para almacenar los marcadores de barco
 let routes = new Map();
 let selectedOption = ref('Name');
 let searchQuery = "";
-
-const selectOptions = [
-  { label: 'Nombre', value: 'SHIPNAME' },
-  { label: 'MMSI', value: 'MMSI' },
-  { label: 'Tipo de Vessel', value: 'VesselType' },
-  { label: 'Estado', value: 'Status' }
-];
 
 const PointIcon = L.icon({
   iconUrl: 'src/assets/point.png',
@@ -500,35 +486,30 @@ const downloadData = () => {
 .back-button {
   position: absolute;
   z-index: 2;
-  padding: 10px 20px;
-  z-index: 2;
   background-color: #1976D2;
   color: white;
   cursor: pointer;
-  font-size: 14px;
   border-radius: 4px;
   border: none;
-  margin-top: 1%;
+  top: 1vh;
 }
 
 .download-button {
   position: absolute;
   z-index: 2;
-  padding: 10px 20px;
-  z-index: 2;
   background-color: #1976D2;
   color: white;
   cursor: pointer;
-  font-size: 14px;
   border-radius: 4px;
   border: none;
-  margin-top: 1%;
-  left: 190px;
+  top: 6vh;
+
 }
 
 .container-botones {
   display: flex;
   margin-left: 50px;
+  align-items:center;
 }
 
 input[type=file]::file-selector-button {
