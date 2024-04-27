@@ -1,5 +1,7 @@
 <template>
     <q-page>
+      <q-btn :label="buttonLabel" @click="marcarDesmarcar" class="marcar">
+    </q-btn>
       <div id="alertBox" class="alert-box"></div>
       <div id="map"></div>
 
@@ -23,6 +25,8 @@
   let boats = ref([]); // Variable para almacenar los datos de los barcos
   let filteredBoats = ref([]); // Variable para almacenar los barcos filtrados
   let alertCount = 0;
+  let marcado= true;
+let buttonLabel = ref('Ocultar Marcadores');
   const puntosIntermedios = [
   [42.236324, -8.737408],
   [42.239348999999995, -8.751727100000001],
@@ -75,7 +79,27 @@
   
   
   
-  
+  function marcarDesmarcar(){
+  buttonLabel.value = !marcado ? 'Ocultar Marcadores' : 'Mostrar Marcadores';
+  if(marcado){
+    
+    pointMarkers.forEach(markers => {
+      markers.forEach(marker => {
+        map.removeLayer(marker); // Quitar el marcador del mapa
+      });
+    });
+  }else{
+    
+    pointMarkers.forEach(markers => {
+      markers.forEach(marker => {
+        marker.addTo(map); // Añadir el marcador al mapa
+      });
+    });
+  }
+  marcado= !marcado
+
+}
+
   async function handleBoatSelection(boat) {
       try {
         const response = await helpers.getBoatRoute({ "MMSI":  boat.MMSI});
@@ -105,7 +129,7 @@
           });
   
           // Crear y agregar ruta del barco al mapa
-          const boatRoute = L.polyline(primerosDosElementos, { color: routeColor, weight: 5 }).addTo(map);
+          const boatRoute = L.polyline(primerosDosElementos, { color: routeColor, weight: 3 }).addTo(map);
           routesArray.push(boatRoute);
           
   
@@ -304,6 +328,13 @@
     z-index: 9999;
   }
   
-  
+  .marcar{
+  position:absolute;
+  z-index:999;
+  top: 1vh;
+  margin-left: 50px;
+  background-color: #1976D2;
+  color: white;
+}
   
   </style>
