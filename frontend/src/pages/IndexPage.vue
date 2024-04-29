@@ -49,9 +49,19 @@ async function initializeMapAndLocator() {
       iconAnchor: [16, 16],
     });
 
-    coorGoniometros.forEach(Goni => {
+    coorGoniometros.forEach((Goni, index) => {
       const marker = L.marker(Goni, { icon: antennaIcon }).addTo(map);
-      marker.bindPopup(`Latitude: ${Goni[0]}, Longitude: ${Goni[1]}`);
+              var popupContent = `<div class="popup-content">
+                                <span class="label">Nombre:</span> <span class="boat-name">Radiogoniometro${index + 1}</span><br>
+                                <span class="label">Latitud:</span> <span class="latitude">${Goni[0]}</span><br>
+                                <span class="label">Longitud:</span> <span class="longitude">${Goni[1]}</span><br>
+                                <span class="label">Estado:</span> <span class="longitude">Activo</span><br>
+                              </div>`;
+
+
+
+        var popup = L.popup().setContent(popupContent);
+        marker.bindPopup(popup).openPopup();
     });
 
     drawAreas();
