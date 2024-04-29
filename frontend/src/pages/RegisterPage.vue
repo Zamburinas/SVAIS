@@ -5,8 +5,8 @@
       bordered
       @keyup.enter="register()">
       <q-card-section class="text-center">
-        <div class="text-blue-9 text-h5 text-weight-bold">Sign up</div>
-        <div class="text-grey-8">Create an account below</div>
+        <div class="text-blue-9 text-h5 text-weight-bold">Registrarse</div>
+        <div class="text-grey-8">Crea una cuenta más abajo.</div>
       </q-card-section>
       <q-card-section>
         <q-input 
@@ -15,7 +15,7 @@
           required
           color = "primary"
           v-model = "email" 
-          label = "Email Address">
+          label = "Correo electrónico">
         </q-input>
         <q-input 
           dense 
@@ -23,7 +23,7 @@
           class = "q-mt-md" 
           v-model = "password" 
           type = "password" 
-          label = "Password">
+          label = "Contraseña">
         </q-input>
         <q-input 
           dense 
@@ -31,7 +31,7 @@
           class = "q-mt-md" 
           v-model = "repeatPassword" 
           type = "password" 
-          label = "Repeat Password">
+          label = "Repite Contraseña">
         </q-input>
         <q-input 
           dense 
@@ -39,7 +39,7 @@
           class = "q-mt-md" 
           color = "primary"
           v-model = "name" 
-          label = "Name">
+          label = "Nombre">
         </q-input>
         <q-input 
           dense 
@@ -47,7 +47,7 @@
           class = "q-mt-md" 
           color = "primary"
           v-model = "lastName" 
-          label = "Last Name">
+          label = "Apellidos">
         </q-input>
         <q-input 
           dense 
@@ -55,7 +55,7 @@
           class = "q-mt-md" 
           color = "primary"
           v-model = "organization" 
-          label = "Organization">
+          label = "Organización">
         </q-input>
       </q-card-section>
       <q-card-section>
@@ -70,13 +70,13 @@
       </q-btn>
       </q-card-section>
       <q-card-section class="text-center q-pt-none">
-        <div class="text-blue-8">Already have an account?
+        <div class="text-blue-8">¿Ya tienes una cuenta?
           <a 
             class="text-blue text-weight-bold" 
             style="text-decoration: none; cursor: pointer;"
             @click="this.$router.push({ name: 'login' })"
             >
-            Sign in.
+            Iniciar Sesión.
           </a>
         </div>
       </q-card-section>

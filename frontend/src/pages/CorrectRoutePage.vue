@@ -172,6 +172,18 @@ let buttonLabel = ref('Ocultar Marcadores');
           for (let i = 0; i <indexPoint ; i++) {
             const coord = routeData.route[i];
             const marker = L.marker([coord[0], coord[1]], { icon: PointIcon }).addTo(map);
+            marker.on('click', async () => {
+            let aux = await helpers.getBoatInfo(boat.MMSI);
+            var popupContent = `<div class="popup-content">
+                                <span class="label">MMSI:</span> <span class="mmsi">${boat.MMSI}</span><br>
+                                <span class="label">Hora:</span> <span class="time">${coord[2]}</span><br>
+                                <span class="label">Latitud:</span> <span class="latitude">${coord[0]}</span><br>
+                                <span class="label">Longitud:</span> <span class="longitude">${coord[1]}</span><br>
+                              </div>`;
+
+            var popup = L.popup().setContent(popupContent);
+            marker.bindPopup(popup).openPopup();
+          });
             pointMarkersArray.push(marker);
           }
           
@@ -191,6 +203,23 @@ let buttonLabel = ref('Ocultar Marcadores');
         if (lastCoords) {
           map.setView([lastCoords[0], lastCoords[1]], 8)
           const boatMarker = L.marker([lastCoords[0], lastCoords[1]], { icon: boatIcon }).addTo(map);
+          
+          boatMarker.on('click', async () => {
+          let aux = await helpers.getBoatInfo(boat.MMSI);
+          var popupContent = `<div class="popup-content">
+                                <span class="label">Nombre:</span> <span class="boat-name">${aux.data.SHIPNAME}</span><br>
+                                <span class="label">Tipo de Barco:</span> <span class="vessel-type">${aux.data.SHIP_TYPE}</span><br>
+                                <span class="label">Hora:</span> <span class="time">${aux.data.BaseDateTime}</span><br>
+                                <span class="label">Estado:</span> <span class="status">${aux.data.STATUS}</span><br>
+                                <span class="label">Latitud:</span> <span class="latitude">${lastCoords[0]}</span><br>
+                                <span class="label">Longitud:</span> <span class="longitude">${lastCoords[1]}</span><br>
+                              </div>`;
+
+
+
+          var popup = L.popup().setContent(popupContent);
+          boatMarker.bindPopup(popup).openPopup();
+        });
           markers.set(boat, boatMarker); // Asociar el marcador con el barco en el mapa
         }
   

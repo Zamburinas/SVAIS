@@ -15,8 +15,8 @@
             <q-menu>
               <div class="row no-wrap q-pa-md">
                 <div class="column">
-                  <div class="text-h6 q-mb-md">Settings</div>
-                  <q-toggle v-model="userData.two_factor_auth" label="Two Factor Authentication"
+                  <div class="text-h6 q-mb-md">Ajustes</div>
+                  <q-toggle v-model="userData.two_factor_auth" label="Autenticación en dos pasos"
                     @update:model-value="toggleChanged" />
                 </div>
 
@@ -26,7 +26,7 @@
                   <div class="text-subtitle1 q-mt-md q-mb-xs">{{ userData.name }}</div>
                   <div class="text-caption">{{ userData.email }}</div> <!-- Email -->
                   <div class="text-caption">{{ userData.organization }}</div> <!-- Organization -->
-                  <q-btn color="primary" label="Logout" push size="sm" v-close-popup @click="navigate('logout')" />
+                  <q-btn color="primary" label="Desconectar" push size="sm" v-close-popup @click="navigate('logout')" />
                 </div>
               </div>
             </q-menu>
@@ -105,7 +105,7 @@ import { SessionStorage } from 'quasar';
 
 const notLoginList = [
   {
-    title: 'Login',
+    title: 'Iniciar Sesión',
     icon: 'login',
     page: '/login',
     size: 'sm'
@@ -133,7 +133,7 @@ const loginList = [
     size: 'sm'
   },
   {
-    title: 'Formación',
+    title: 'Simulacro',
     icon: 'school',
     page: '/trainees',
     size: 'sm'

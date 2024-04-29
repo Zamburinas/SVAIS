@@ -2,13 +2,13 @@
   <q-page class="flex flex-center bg-grey-2">
     <q-card class="q-pa-md shadow-2 my_card" bordered @keyup.enter="login()">
       <q-card-section class="text-center">
-        <div class="text-blue-9 text-h5 text-weight-bold">Sign in</div>
-        <div class="text-grey-8">Sign in below to access your account</div>
+        <div class="text-blue-9 text-h5 text-weight-bold">Iniciar Sesión</div>
+        <div class="text-grey-8">Inicia sesión para acceder a tu cuenta</div>
       </q-card-section>
       <q-card-section>
-        <q-input dense outlined color="primary" v-model="email" label="Email Address">
+        <q-input dense outlined color="primary" v-model="email" label="Correo Electrónico">
         </q-input>
-        <q-input dense outlined class="q-mt-md" v-model="password" type="password" label="Password">
+        <q-input dense outlined class="q-mt-md" v-model="password" type="password" label="Contraseña">
         </q-input>
         <q-img v-if="this.tfa" :src="this.capturedImage" alt="Captured Image"
           style="margin-top: 5%; max-width: 100%; border: 1px solid blue; border-radius: 5px;" />
@@ -22,10 +22,10 @@
         </q-btn>
       </q-card-section>
       <q-card-section class="text-center q-pt-none">
-        <div class="text-blue-8">Don't have an account yet?
+        <div class="text-blue-8">¿Aún no tienes cuenta?
           <a class="text-blue text-weight-bold" style="text-decoration: none; cursor: pointer;"
             @click="this.$router.push({ name: 'register' })">
-            Sign up.
+            Registrar.
           </a>
         </div>
       </q-card-section>
