@@ -1,51 +1,55 @@
 # SVAIS
 
+Maritime transport is essential to the global economy but faces major challenges due to fraudulent activities, such as the falsification of vessel positioning data. Although the AIS (Automatic Identification System) technology is critical for monitoring and managing maritime traffic, its reliability is not always guaranteed, posing risks to safety and the efficient management of resources.
 
-El transporte marítimo es crucial para la economía global, pero enfrenta desafíos significativos debido a actividades fraudulentas, como la falsificación de datos de posicionamiento de los buques. Aunque la tecnología AIS (Automatic Identification System) es vital para monitorear y gestionar el tráfico marítimo, su fiabilidad no siempre está garantizada, lo que pone en riesgo la seguridad y la gestión eficiente de los recursos.
-
-Este proyecto propone técnicas de validación y verificación de datos AIS mediante una interfaz web interactiva y personalizable. Esta herramienta visual y eficaz ayudará a los organismos de control marítimo a detectar y prevenir actividades anómalas, fortaleciendo la seguridad, integridad, eficiencia y transparencia en la gestión del transporte marítimo global.
+This project proposes AIS data validation and verification techniques through an interactive and customizable web interface. This visual and effective tool assists maritime control authorities in detecting and preventing anomalous activities, strengthening the security, integrity, efficiency, and transparency of global maritime transport management.
 
 ![Screenshot 2024-07-23 112853](https://github.com/user-attachments/assets/cfaba239-1e37-4cef-8763-3dcd5c6ac478)
 
-## Servidor Web
+## Web Server
 
-El proyecto ofrece una interfaz web interactiva y adaptable a cualquier dispositivo para la vigilancia y filtrado de información sobre embarcaciones detectadas y su verificación posicional. Esto se realiza mediante un sistema de radiogoniometría que proporciona ángulos de incidencia de las señales, utilizados en un algoritmo de triangulación para calcular una elipse de confianza del 95%, identificando posiciones fraudulentas y notificando al usuario.
+The project provides an interactive web interface adaptable to any device for monitoring and filtering information about detected vessels and verifying their positions. This is achieved through a radiogoniometry system that provides signal incidence angles, used in a triangulation algorithm to calculate a 95% confidence ellipse, identifying fraudulent positions and notifying the user.
 
-La aplicación web tiene dos modos de funcionamiento: Vigilancia, para monitoreo en tiempo real, y Simulacro, para entrenar a operarios en situaciones predefinidas. También permite consultar el historial de cada embarcación para detectar rutas anómalas y alertar al usuario. Además, se pueden decodificar y visualizar mensajes AIS pregrabados.
+The web application offers two operating modes: **Surveillance**, for real-time monitoring, and **Simulation**, to train operators with predefined scenarios. It also allows querying each vessel’s history to detect anomalous routes and alert the user. Additionally, pre-recorded AIS messages can be decoded and visualized.
 
-El acceso a las funcionalidades se controla mediante tres roles: Base (solo modo Vigilancia), Operarios (acceso total) y Administradores (acceso y modificación de la base de datos). Para proteger la información sensible, se implementó un sistema de reconocimiento facial como verificación en dos pasos.
+Access to features is managed through three user roles:
+- **Base:** access to Surveillance mode only.  
+- **Operators:** full access.  
+- **Administrators:** full access and database management capabilities.  
+
+To protect sensitive data, a **facial recognition system** was implemented as a two-step verification method.
 
 ![Screenshot 2024-07-23 113103](https://github.com/user-attachments/assets/6f370a3d-7080-4202-bf78-8b2755dafef0)
 
 ![Screenshot 2024-07-23 113131](https://github.com/user-attachments/assets/84ef45c2-2e17-4aea-8ebb-870adc8163bf)
 
-## Receptor y Decodificador AIS
+## AIS Receiver and Decoder
 
-El sistema incluye un nodo receptor ubicado en la costa, compuesto por una Raspberry Pi conectada a una radio definida por software (SDR), que captura señales de radio AIS, las decodifica y las transmite al servidor mediante un enlace LTE.
+The system includes a receiver node located on the coast, consisting of a **Raspberry Pi** connected to a **software-defined radio (SDR)**. This setup captures AIS radio signals, decodes them, and transmits the data to the web server through an LTE connection.
 
-La implementación del decodificador se realizó en dos fases: primero, se desarrolló un programa en Matlab y se probaron señales AIS pregrabadas; luego, se implementó el algoritmo en Python, verificando las salidas de ambos programas para asegurar su correcto funcionamiento.
+The decoder implementation was carried out in two phases:  
+1. A MATLAB prototype was developed and tested with pre-recorded AIS signals.  
+2. The algorithm was reimplemented in Python, comparing outputs from both systems to ensure consistent and correct operation.
 
 ![Screenshot 2024-07-23 113455](https://github.com/user-attachments/assets/3c21f029-2b84-4c31-94ca-cd23779ec325)
 
-
-Un sistema AIS transmite datos del buque mediante un emisor VHF, usando los canales 87B y 88B (frecuencias 161.975 MHz y 162.025 MHz) con modulación GMSK de 9.6 kbits/s en canales de 25kHz, usando un protocolo HDLC. La estructura y tipos de mensajes de AIS siguen la Recomendación UIT-R M.1371-5 (02/2014).
+An AIS system transmits vessel data via a **VHF transmitter**, using channels **87B** and **88B** (frequencies 161.975 MHz and 162.025 MHz) with **GMSK modulation at 9.6 kbit/s** over 25 kHz channels, following the **HDLC protocol**. The message structure and types comply with **ITU-R M.1371-5 (02/2014)** recommendations.
 
 ![Screenshot 2024-07-23 113542](https://github.com/user-attachments/assets/6c795e29-1dd6-4f24-b980-dae1ca5aa9ec)
 
-## Sistema fotovoltaico de alimentación
+## Photovoltaic Power System
 
 ![Screenshot 2024-07-23 114000](https://github.com/user-attachments/assets/5234c594-bf43-47fe-8456-42bff88d7c4c)
 
+The power system consists of four main components:
 
-El esquema consta de cuatro componentes principales:
-
-- Panel Solar: Captura la energía solar disponible y la convierte en electricidad.
-- Controlador de Carga: Regula el flujo de energía hacia la Raspberry Pi o una batería recargable, asegurando una carga óptima y segura sin comprometer la autonomía de la Raspberry.
-- Batería Recargable: Almacena la energía cuando no se utiliza directamente.
-- Convertidor Reductor: Ajusta la tensión de salida del controlador de carga a niveles adecuados para alimentar la Raspberry Pi.
+- **Solar Panel:** Captures available solar energy and converts it into electricity.  
+- **Charge Controller:** Regulates the energy flow to the Raspberry Pi or a rechargeable battery, ensuring optimal and safe charging without compromising autonomy.  
+- **Rechargeable Battery:** Stores energy for later use when direct power is unavailable.  
+- **Step-Down Converter:** Adjusts the controller’s output voltage to suitable levels for the Raspberry Pi’s power requirements.
 
 ![1000022877](https://github.com/user-attachments/assets/586d95e0-c5e9-4451-b95f-b4001f84520b)
 
-Tecnologías
+## Technologies
 
 ![Screenshot 2024-07-23 114113](https://github.com/user-attachments/assets/6096bb5f-ea02-41ca-a8c7-a6a3b40ecb73)
